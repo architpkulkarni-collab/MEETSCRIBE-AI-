@@ -847,7 +847,7 @@ def auth_logout():
 #              SERVE FRONTEND (with auth)
 # ═══════════════════════════════════════════════════
 
-FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+FRONTEND_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 @app.route("/login")
