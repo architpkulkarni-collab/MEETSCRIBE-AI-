@@ -9,6 +9,7 @@ python-dotenv==1.1.0
 # AI / Speech-to-Text
 openai-whisper>=20231117
 gunicorn
+pymongo
 # Audio processing
 pydub>=0.25.1
 
