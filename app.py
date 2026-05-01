@@ -51,7 +51,7 @@ if make_google_blueprint:
     app.register_blueprint(google_bp, url_prefix="/login")
 
 # ── MongoDB Setup ──
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME", "airscribe")
 
 client = MongoClient(MONGO_URI)
