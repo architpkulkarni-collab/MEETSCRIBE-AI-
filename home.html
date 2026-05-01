@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AirScribe — Your Intelligent Workspace for Notes</title>
+    <meta name="description"
+        content="Write, organize, and connect your ideas with AirScribe — a powerful, beautifully designed note-taking workspace with AI tools, voice input, and knowledge graph." />
+    <meta name="keywords" content="AirScribe, Smart Notes, Note Taking, Productivity, AI, Knowledge Graph" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="home.css" />
+    <style>
+        .nav-user{display:flex;align-items:center;gap:10px;margin-left:14px;padding-left:14px;border-left:1px solid rgba(79,209,255,.15);}
+        .nav-user-avatar{width:30px;height:30px;border-radius:50%;border:2px solid #4fd1ff;object-fit:cover;}
+        .nav-user-name{font-size:13px;color:#8da4c2;font-weight:500;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .nav-logout{color:#f87171;font-size:14px;padding:4px 8px;border-radius:6px;transition:background .15s;text-decoration:none;}
+        .nav-logout:hover{background:rgba(248,113,113,.12);}
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══════════ PAGE LOADER ═══════════ -->
+    <div class="page-loader" id="pageLoader">
+        <div class="loader-logo">✦</div>
+        <div class="loader-text">AirScribe</div>
+    </div>
+
+    <!-- ═══════════ ANIMATED BACKGROUND ═══════════ -->
+    <div class="bg-gradient">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+    </div>
+    <div class="bg-grid"></div>
+
+    <!-- ═══════════ CONTENT ═══════════ -->
+    <div class="content-wrapper">
+
+        <!-- ── NAVBAR ── -->
+        <nav class="navbar" id="navbar">
+            <a href="home.html" class="nav-brand">
+                <div class="nav-logo">✦</div>
+                <div class="nav-brand-text">
+                    <span class="nav-brand-name">AirScribe</span>
+                    <span class="nav-brand-sub">Smart Notes</span>
+                </div>
+            </a>
+
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <i class="fa fa-bars"></i>
+            </button>
+
+            <div class="nav-links" id="navLinks">
+                <a href="AirScribe_v3.html?view=dashboard" class="nav-link">Dashboard</a>
+                <a href="AirScribe_v3.html?view=new" class="nav-link">New Note</a>
+                <a href="AirScribe_v3.html?view=recent" class="nav-link">Recent</a>
+                <a href="AirScribe_v3.html?view=pinned" class="nav-link">Pinned</a>
+                <a href="AirScribe_v3.html?view=dashboard" class="nav-cta">
+                    <i class="fa fa-arrow-right"></i> Enter Workspace
+                </a>
+                <div class="nav-user" id="navUser" style="display:none;">
+                    <img class="nav-user-avatar" id="navUserAvatar" src="" alt=""
+                        onerror="this.style.display='none'">
+                    <span class="nav-user-name" id="navUserName"></span>
+                    <a href="/auth/logout" class="nav-logout" title="Logout">
+                        <i class="fa fa-right-from-bracket"></i>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- ── HERO SECTION ── -->
+        <section class="hero" id="hero">
+            <div class="hero-container">
+
+                <!-- Left: Content -->
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <span class="hero-badge-dot"></span>
+                        Smart Workspace — Now Available
+                    </div>
+
+                    <h1 class="hero-title">
+                        Your Intelligent<br />
+                        Workspace for<br />
+                        <span class="hero-title-gradient" id="heroTagline">Notes</span>
+                    </h1>
+
+                    <p class="hero-subtitle">
+                        Write, organize, and connect your ideas with a powerful and beautifully designed note-taking
+                        workspace. Powered by AI tools, voice input, and knowledge graph visualization.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="AirScribe_v3.html?view=dashboard" class="btn btn-primary" data-view="dashboard">
+                            <i class="fa fa-rocket"></i> Enter Workspace
+                        </a>
+                        <a href="AirScribe_v3.html?view=new" class="btn btn-secondary" data-view="new">
+                            <i class="fa fa-plus"></i> Create New Note
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right: Preview -->
+                <div class="hero-preview">
+                    <div class="preview-window">
+                        <div class="preview-titlebar">
+                            <span class="preview-dot"></span>
+                            <span class="preview-dot"></span>
+                            <span class="preview-dot"></span>
+                        </div>
+                        <div class="preview-body">
+                            <div class="preview-sidebar">
+                                <div class="preview-sidebar-item active">
+                                    <i class="fa fa-home"></i> Dashboard
+                                </div>
+                                <div class="preview-sidebar-item">
+                                    <i class="fa fa-plus"></i> New Note
+                                </div>
+                                <div class="preview-sidebar-item">
+                                    <i class="fa fa-clock"></i> Recent
+                                </div>
+                                <div class="preview-sidebar-item">
+                                    <i class="fa fa-thumbtack"></i> Pinned
+                                </div>
+                                <div class="preview-sidebar-item">
+                                    <i class="fa fa-bell"></i> Reminders
+                                </div>
+                                <div class="preview-sidebar-item">
+                                    <i class="fa fa-chart-bar"></i> Analytics
+                                </div>
+                                <div class="preview-sidebar-item">
+                                    <i class="fa fa-diagram-project"></i> Graph
+                                </div>
+                            </div>
+                            <div class="preview-main">
+                                <div class="preview-stat-row">
+                                    <div class="preview-stat">
+                                        <div class="preview-stat-num" style="color:#4fd1ff;">12</div>
+                                        <div class="preview-stat-label">Total Notes</div>
+                                    </div>
+                                    <div class="preview-stat">
+                                        <div class="preview-stat-num" style="color:#a78bfa;">5</div>
+                                        <div class="preview-stat-label">This Week</div>
+                                    </div>
+                                </div>
+                                <div class="preview-stat-row">
+                                    <div class="preview-stat">
+                                        <div class="preview-stat-num" style="color:#34d399;">4</div>
+                                        <div class="preview-stat-label">Folders</div>
+                                    </div>
+                                    <div class="preview-stat">
+                                        <div class="preview-stat-num" style="color:#fbbf24;">3</div>
+                                        <div class="preview-stat-label">Pinned</div>
+                                    </div>
+                                </div>
+                                <div class="preview-note-list">
+                                    <div class="preview-note">
+                                        <div class="preview-note-title">📝 Project Ideas</div>
+                                        <div class="preview-note-text">Brainstorming new features for the app…</div>
+                                    </div>
+                                    <div class="preview-note">
+                                        <div class="preview-note-title">📚 Study Notes</div>
+                                        <div class="preview-note-text">Chapter 5: Data structures and algorithms…</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ── WORKSPACE CARDS ── -->
+        <section class="section" id="workspace">
+            <div class="section-header reveal">
+                <div class="section-label">
+                    <span class="section-label-line"></span>
+                    Your Workspace
+                    <span class="section-label-line"></span>
+                </div>
+                <h2 class="section-title">Jump Right Into<br />Your Workspace</h2>
+                <p class="section-desc">Everything you need to capture, organize, and connect your ideas — all in one
+                    place.</p>
+            </div>
+
+            <div class="workspace-grid">
+                <a href="AirScribe_v3.html?view=dashboard" class="workspace-card reveal" data-view="dashboard">
+                    <div class="wc-icon wc-icon-dashboard">
+                        <i class="fa fa-chart-line"></i>
+                    </div>
+                    <div class="wc-title">Dashboard</div>
+                    <div class="wc-desc">View workspace analytics, recent notes, and activity at a glance.</div>
+                    <div class="wc-arrow">Open → </div>
+                </a>
+
+                <a href="AirScribe_v3.html?view=new" class="workspace-card reveal" data-view="new">
+                    <div class="wc-icon wc-icon-new">
+                        <i class="fa fa-pen-to-square"></i>
+                    </div>
+                    <div class="wc-title">New Note</div>
+                    <div class="wc-desc">Start writing a new idea instantly with the rich text editor.</div>
+                    <div class="wc-arrow">Create → </div>
+                </a>
+
+                <a href="AirScribe_v3.html?view=recent" class="workspace-card reveal" data-view="recent">
+                    <div class="wc-icon wc-icon-recent">
+                        <i class="fa fa-clock-rotate-left"></i>
+                    </div>
+                    <div class="wc-title">Recent Notes</div>
+                    <div class="wc-desc">Quick access to your latest work from the past 7 days.</div>
+                    <div class="wc-arrow">Browse → </div>
+                </a>
+
+                <a href="AirScribe_v3.html?view=pinned" class="workspace-card reveal" data-view="pinned">
+                    <div class="wc-icon wc-icon-pinned">
+                        <i class="fa fa-thumbtack"></i>
+                    </div>
+                    <div class="wc-title">Pinned Notes</div>
+                    <div class="wc-desc">Keep your most important notes always visible and accessible.</div>
+                    <div class="wc-arrow">View → </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- ── FEATURE HIGHLIGHTS ── -->
+        <section class="section" id="features">
+            <div class="section-header reveal">
+                <div class="section-label">
+                    <span class="section-label-line"></span>
+                    Powerful Features
+                    <span class="section-label-line"></span>
+                </div>
+                <h2 class="section-title">Everything You Need<br />to Be Productive</h2>
+                <p class="section-desc">AirScribe combines intelligent tools with a clean workspace to help you write,
+                    think, and create.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon fi-notes">
+                        <i class="fa fa-file-pen"></i>
+                    </div>
+                    <div class="feature-title">Smart Notes</div>
+                    <div class="feature-desc">Rich text editing with Quill.js — headers, lists, code blocks, images, and
+                        more. Organize ideas effortlessly.</div>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon fi-ai">
+                        <i class="fa fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div class="feature-title">AI Tools</div>
+                    <div class="feature-desc">Summarize notes, expand ideas, fix grammar, generate bullet points, and
+                        more with built-in AI assistance.</div>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon fi-voice">
+                        <i class="fa fa-microphone"></i>
+                    </div>
+                    <div class="feature-title">Voice Input</div>
+                    <div class="feature-desc">Capture thoughts hands-free with live speech recognition. Dictate notes
+                        and watch them appear in real-time.</div>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon fi-graph">
+                        <i class="fa fa-diagram-project"></i>
+                    </div>
+                    <div class="feature-title">Knowledge Graph</div>
+                    <div class="feature-desc">Visualize connections between your notes with an interactive network
+                        graph. See how your ideas relate.</div>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon fi-tags">
+                        <i class="fa fa-tags"></i>
+                    </div>
+                    <div class="feature-title">Tag System</div>
+                    <div class="feature-desc">Organize notes with flexible tags. Autocomplete suggestions, sidebar
+                        filtering, and instant tag-based search.</div>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon fi-export">
+                        <i class="fa fa-file-export"></i>
+                    </div>
+                    <div class="feature-title">Export & Present</div>
+                    <div class="feature-desc">Export notes as TXT, DOC, or PDF. Convert any note into a presentation
+                        with slide navigation.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── CTA BANNER ── -->
+        <section class="cta-section">
+            <div class="cta-banner reveal">
+                <h2 class="cta-title">Ready to Start Writing?</h2>
+                <p class="cta-desc">Your ideas deserve a beautiful home. Enter the AirScribe workspace and start
+                    capturing your thoughts today.</p>
+                <div class="cta-actions">
+                    <a href="AirScribe_v3.html?view=dashboard" class="btn btn-primary" data-view="dashboard">
+                        <i class="fa fa-rocket"></i> Enter Workspace
+                    </a>
+                    <a href="AirScribe_v3.html?view=new" class="btn btn-secondary" data-view="new">
+                        <i class="fa fa-plus"></i> Create New Note
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── FOOTER ── -->
+        <footer class="footer">
+            <div class="footer-inner">
+                <div class="footer-brand">
+                    <div class="footer-logo">✦</div>
+                    <div class="footer-brand-info">
+                        <h4>AirScribe — Smart Notes</h4>
+                        <p>Your Intelligent Workspace</p>
+                    </div>
+                </div>
+
+                <div class="footer-links">
+                    <a href="AirScribe_v3.html?view=dashboard" class="footer-link">Dashboard</a>
+                    <a href="AirScribe_v3.html?view=new" class="footer-link">New Note</a>
+                    <a href="AirScribe_v3.html?view=recent" class="footer-link">Recent</a>
+                    <a href="AirScribe_v3.html?view=pinned" class="footer-link">Pinned</a>
+                    <a href="AirScribe_v3.html?view=analytics" class="footer-link">Analytics</a>
+                    <a href="AirScribe_v3.html?view=graph" class="footer-link">Knowledge Graph</a>
+                </div>
+            </div>
+
+            <div class="footer-credit">
+                AirScribe — Developed by ASEP Group 9 · © 2026
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="home.js"></script>
+    <script>
+        // Load user profile into navbar
+        fetch('/auth/status').then(r=>r.json()).then(d=>{
+            if(d.authenticated && d.user){
+                const el=document.getElementById('navUser');
+                if(el){el.style.display='flex';}
+                const av=document.getElementById('navUserAvatar');
+                if(av && d.user.picture){av.src=d.user.picture;av.style.display='';}
+                else if(av){av.style.display='none';}
+                const nm=document.getElementById('navUserName');
+                if(nm){nm.textContent=d.user.name||d.user.email;}
+            }
+        }).catch(()=>{});
+    </script>
+
+</body>
+
+</html>

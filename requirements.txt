@@ -1,0 +1,24 @@
+# AirScribe AI Meeting Server - Dependencies
+# ============================================
+
+# Core server
+flask==3.1.0
+flask-cors==5.0.1
+python-dotenv==1.1.0
+
+# AI / Speech-to-Text
+openai-whisper>=20231117
+
+# Audio processing
+pydub>=0.25.1
+
+# Speaker diarization (optional — falls back to simple method if not installed)
+# Requires a HuggingFace token with access to pyannote models
+# pyannote.audio>=3.1.1
+# torch>=2.0.0
+# torchaudio>=2.0.0
+
+# Note: ffmpeg must be installed on your system for audio conversion
+# Windows: choco install ffmpeg  OR  download from https://ffmpeg.org
+# Linux: sudo apt install ffmpeg
+# macOS: brew install ffmpeg

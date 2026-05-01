@@ -1,0 +1,65 @@
+<!--
+  ════════════════════════════════════════════════════════
+  HOW TO INTEGRATE AI MEETING INTO AirScribe_v3.html
+  ════════════════════════════════════════════════════════
+  
+  Add these TWO lines just before the closing </body> tag in AirScribe_v3.html:
+  (After line 5460, before </body>)
+-->
+
+<!-- AI Meeting Integration — ADD these 2 lines before </body> -->
+<link rel="stylesheet" href="AirScribe_AI_Meeting/frontend/ai_meeting.css">
+<script src="AirScribe_AI_Meeting/frontend/ai_meeting.js"></script>
+
+<!--
+  ════════════════════════════════════════════════════════
+  THEN, update the confirmMeetingSetup() function (around line 4874)
+  to ALSO start the AI meeting alongside the existing recorder.
+  
+  FIND this code:
+  
+      function confirmMeetingSetup() {
+          const count = parseInt(document.getElementById('meetingSpeakerCount').value);
+          const names = [];
+          for (let i = 1; i <= count; i++) {
+              const inp = document.getElementById(`speakerName${i}`);
+              names.push(inp && inp.value.trim() ? inp.value.trim() : `Speaker ${i}`);
+          }
+          closeMeetingSetup();
+          MeetingRecorder.startWithSpeakers(names);
+      }
+  
+  REPLACE WITH:
+  
+      function confirmMeetingSetup() {
+          const count = parseInt(document.getElementById('meetingSpeakerCount').value);
+          const names = [];
+          for (let i = 1; i <= count; i++) {
+              const inp = document.getElementById(`speakerName${i}`);
+              names.push(inp && inp.value.trim() ? inp.value.trim() : `Speaker ${i}`);
+          }
+          closeMeetingSetup();
+          MeetingRecorder.startWithSpeakers(names);
+          
+          // ── AI Enhancement: Also start AI transcription if server is available ──
+          if (typeof AIMeeting !== 'undefined') {
+              AIMeeting.start(names).then(ok => {
+                  if (ok) console.log('AI Meeting transcription started alongside Web Speech API');
+              }).catch(() => {});
+          }
+      }
+  
+  AND update stopMeetingRecording():
+  
+      function stopMeetingRecording() {
+          MeetingRecorder.stop();
+          // ── AI Enhancement: Also stop AI transcription ──
+          if (typeof AIMeeting !== 'undefined' && AIMeeting.isActive()) {
+              AIMeeting.stop();
+          }
+      }
+  
+  That's it! The AI module works alongside the existing system.
+  If the AI server is not running, it silently falls back to the
+  existing Web Speech API behavior — nothing breaks.
+-->

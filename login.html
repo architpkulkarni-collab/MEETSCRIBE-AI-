@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AirScribe — Login</title>
+    <meta name="description" content="Sign in to AirScribe — Your Intelligent Workspace for Notes" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="stylesheet" href="login.css" />
+</head>
+
+<body>
+
+    <!-- Background -->
+    <div class="bg-gradient">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+    </div>
+    <div class="bg-grid"></div>
+
+    <!-- Login Container -->
+    <div class="login-wrapper">
+        <div class="login-card">
+
+            <!-- Logo -->
+            <div class="login-logo">
+                <div class="login-logo-icon">✦</div>
+                <h1>AirScribe</h1>
+                <p>Your Intelligent Workspace</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="login-tabs">
+                <button class="login-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+                <button class="login-tab" id="tabRegister" onclick="switchTab('register')">Create Account</button>
+            </div>
+
+            <!-- Error Message -->
+            <div class="login-error hidden" id="loginError">
+                <i class="fa fa-circle-exclamation"></i>
+                <span id="loginErrorMsg"></span>
+            </div>
+
+            <!-- Login Form -->
+            <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginEmail"><i class="fa fa-envelope"></i> Email</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com" required autocomplete="email" />
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword"><i class="fa fa-lock"></i> Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required
+                        autocomplete="current-password" minlength="6" />
+                </div>
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <i class="fa fa-arrow-right-to-bracket"></i> Sign In
+                </button>
+            </form>
+
+            <!-- Register Form (hidden by default) -->
+            <form class="login-form hidden" id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="regName"><i class="fa fa-user"></i> Full Name</label>
+                    <input type="text" id="regName" placeholder="Your full name" autocomplete="name" />
+                </div>
+                <div class="form-group">
+                    <label for="regEmail"><i class="fa fa-envelope"></i> Email</label>
+                    <input type="email" id="regEmail" placeholder="you@example.com" required autocomplete="email" />
+                </div>
+                <div class="form-group">
+                    <label for="regPassword"><i class="fa fa-lock"></i> Password</label>
+                    <input type="password" id="regPassword" placeholder="Min. 6 characters" required
+                        autocomplete="new-password" minlength="6" />
+                </div>
+                <button type="submit" class="login-btn" id="regBtn">
+                    <i class="fa fa-user-plus"></i> Create Account
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="login-divider">
+                <span>or continue with</span>
+            </div>
+
+            <!-- Google Sign-In -->
+            <div id="googleBtnContainer" class="google-btn-wrapper">
+                <!-- Google button will be rendered here -->
+            </div>
+
+            <!-- Hidden div for Google One-Tap (rendered by Google library) -->
+            <div id="g_id_onload" style="display:none"></div>
+
+        </div>
+
+        <div class="login-footer">
+            AirScribe — Developed by ASEP Group 9 &middot; &copy; 2026
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+        let googleClientId = '';
+
+        // ── Tab Switching ──
+        function switchTab(tab) {
+            document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+            document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+            document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+            hideError();
+        }
+
+        function showError(msg) {
+            document.getElementById('loginErrorMsg').textContent = msg;
+            document.getElementById('loginError').classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('loginError').classList.add('hidden');
+        }
+
+        function setLoading(btn, loading) {
+            btn.disabled = loading;
+            if (loading) {
+                btn.dataset.originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Please wait...';
+            } else {
+                btn.innerHTML = btn.dataset.originalText || btn.innerHTML;
+            }
+        }
+
+        // ── Login ──
+        async function handleLogin(e) {
+            e.preventDefault();
+            hideError();
+            const btn = document.getElementById('loginBtn');
+            setLoading(btn, true);
+
+            try {
+                const res = await fetch(`${API}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) { showError(data.error || 'Login failed'); setLoading(btn, false); return; }
+                window.location.href = '/';
+            } catch (err) {
+                showError('Connection error. Is the server running?');
+                setLoading(btn, false);
+            }
+        }
+
+        // ── Register ──
+        async function handleRegister(e) {
+            e.preventDefault();
+            hideError();
+            const btn = document.getElementById('regBtn');
+            setLoading(btn, true);
+
+            try {
+                const res = await fetch(`${API}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('regName').value,
+                        email: document.getElementById('regEmail').value,
+                        password: document.getElementById('regPassword').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) { showError(data.error || 'Registration failed'); setLoading(btn, false); return; }
+                window.location.href = '/';
+            } catch (err) {
+                showError('Connection error. Is the server running?');
+                setLoading(btn, false);
+            }
+        }
+
+        // ── Google Sign-In ──
+        function handleGoogleCredential(response) {
+            fetch(`${API}/auth/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) { showError(data.error); return; }
+                    window.location.href = '/';
+                })
+                .catch(() => showError('Google sign-in failed'));
+        }
+
+        function triggerGoogleSignIn() {
+            // Function no longer used; standard button rendered instead.
+            if (!googleClientId) {
+                showError('Google Sign-In is not configured. Set GOOGLE_CLIENT_ID in .env');
+                return;
+            }
+        }
+
+        // ── Init Google Sign-In ──
+        async function initGoogleSignIn() {
+            try {
+                const res = await fetch(`${API}/auth/config`);
+                const config = await res.json();
+                googleClientId = config.google_client_id;
+
+                if (googleClientId && typeof google !== 'undefined') {
+                    google.accounts.id.initialize({
+                        client_id: googleClientId,
+                        callback: handleGoogleCredential,
+                        auto_select: false,
+                        cancel_on_tap_outside: true
+                    });
+                    
+                    // Render the Google Sign-In button
+                    google.accounts.id.renderButton(
+                        document.getElementById("googleBtnContainer"),
+                        { theme: "filled_black", size: "large", shape: "rectangular" }
+                    );
+                }
+            } catch (e) {
+                console.log('Google Sign-In config not available');
+            }
+        }
+
+        // ── On Load ──
+        window.addEventListener('load', () => {
+            initGoogleSignIn();
+        });
+    </script>
+
+</body>
+
+</html>
