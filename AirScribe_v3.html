@@ -2532,8 +2532,15 @@
         }
 
         @keyframes meeting-btn-glow {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.4); }
-            50% { box-shadow: 0 0 12px 3px rgba(248, 113, 113, 0.25); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 12px 3px rgba(248, 113, 113, 0.25);
+            }
         }
 
         /* ── Floating Recording Bar ── */
@@ -2571,8 +2578,17 @@
         }
 
         @keyframes rec-blink {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.7); }
-            50% { opacity: 0.3; box-shadow: 0 0 8px 3px rgba(248, 113, 113, 0.3); }
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.7);
+            }
+
+            50% {
+                opacity: 0.3;
+                box-shadow: 0 0 8px 3px rgba(248, 113, 113, 0.3);
+            }
         }
 
         .meeting-rec-timer {
@@ -2611,17 +2627,51 @@
             animation: wave-bounce 1.2s ease-in-out infinite;
         }
 
-        .meeting-waveform .wave-bar:nth-child(1) { height: 6px; animation-delay: 0s; }
-        .meeting-waveform .wave-bar:nth-child(2) { height: 12px; animation-delay: 0.1s; }
-        .meeting-waveform .wave-bar:nth-child(3) { height: 18px; animation-delay: 0.2s; }
-        .meeting-waveform .wave-bar:nth-child(4) { height: 10px; animation-delay: 0.3s; }
-        .meeting-waveform .wave-bar:nth-child(5) { height: 22px; animation-delay: 0.15s; }
-        .meeting-waveform .wave-bar:nth-child(6) { height: 14px; animation-delay: 0.25s; }
-        .meeting-waveform .wave-bar:nth-child(7) { height: 8px; animation-delay: 0.35s; }
+        .meeting-waveform .wave-bar:nth-child(1) {
+            height: 6px;
+            animation-delay: 0s;
+        }
+
+        .meeting-waveform .wave-bar:nth-child(2) {
+            height: 12px;
+            animation-delay: 0.1s;
+        }
+
+        .meeting-waveform .wave-bar:nth-child(3) {
+            height: 18px;
+            animation-delay: 0.2s;
+        }
+
+        .meeting-waveform .wave-bar:nth-child(4) {
+            height: 10px;
+            animation-delay: 0.3s;
+        }
+
+        .meeting-waveform .wave-bar:nth-child(5) {
+            height: 22px;
+            animation-delay: 0.15s;
+        }
+
+        .meeting-waveform .wave-bar:nth-child(6) {
+            height: 14px;
+            animation-delay: 0.25s;
+        }
+
+        .meeting-waveform .wave-bar:nth-child(7) {
+            height: 8px;
+            animation-delay: 0.35s;
+        }
 
         @keyframes wave-bounce {
-            0%, 100% { transform: scaleY(0.3); }
-            50% { transform: scaleY(1); }
+
+            0%,
+            100% {
+                transform: scaleY(0.3);
+            }
+
+            50% {
+                transform: scaleY(1);
+            }
         }
 
         .meeting-waveform.paused .wave-bar {
@@ -2712,6 +2762,7 @@
                 padding: 8px 14px;
                 gap: 10px;
             }
+
             .meeting-rec-status {
                 display: none;
             }
@@ -2781,7 +2832,7 @@
             letter-spacing: 0.5px;
         }
 
-        .download-dropdown-item + .download-dropdown-item {
+        .download-dropdown-item+.download-dropdown-item {
             border-top: 1px solid var(--border);
         }
 
@@ -2794,6 +2845,7 @@
             padding-left: 12px;
             border-left: 1px solid var(--border-med);
         }
+
         .user-avatar {
             width: 30px;
             height: 30px;
@@ -2801,6 +2853,7 @@
             border: 2px solid var(--accent);
             object-fit: cover;
         }
+
         .user-name-topbar {
             font-size: 12px;
             color: var(--text-2);
@@ -2810,6 +2863,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
         .logout-btn {
             background: none;
             border: none;
@@ -2820,6 +2874,7 @@
             border-radius: 6px;
             transition: background 0.15s;
         }
+
         .logout-btn:hover {
             background: rgba(248, 113, 113, 0.12);
         }
@@ -2880,9 +2935,12 @@
     <div id="meetingSetupModal" class="modal-overlay hidden">
         <div class="modal-box">
             <h3><i class="fa fa-users"></i> Live Meeting Setup</h3>
-            <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Configure speakers before starting the recording.</p>
+            <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Configure speakers before starting the
+                recording.</p>
             <div style="margin-bottom:14px">
-                <label style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--text-3);display:block;margin-bottom:6px">NUMBER OF SPEAKERS</label>
+                <label
+                    style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--text-3);display:block;margin-bottom:6px">NUMBER
+                    OF SPEAKERS</label>
                 <select id="meetingSpeakerCount" class="es-select" onchange="updateSpeakerFields()">
                     <option value="2" selected>2 Speakers</option>
                     <option value="3">3 Speakers</option>
@@ -3095,7 +3153,8 @@
                     <div class="user-profile-area" id="userProfileArea" style="display:none">
                         <img class="user-avatar" id="userAvatar" src="" alt="" onerror="this.style.display='none'">
                         <span class="user-name-topbar" id="userNameTopbar"></span>
-                        <button class="logout-btn" onclick="window.location.href='/auth/logout'" title="Logout"><i class="fa fa-right-from-bracket"></i></button>
+                        <button class="logout-btn" onclick="window.location.href='/auth/logout'" title="Logout"><i
+                                class="fa fa-right-from-bracket"></i></button>
                     </div>
                 </div>
             </header>
@@ -3239,7 +3298,8 @@
                             <div class="es-section">
                                 <div class="es-label">VOICE INPUT</div>
                                 <div class="voice-controls">
-                                    <button class="voice-btn meeting" id="meetingBtn" onclick="toggleMeetingRecording()">
+                                    <button class="voice-btn meeting" id="meetingBtn"
+                                        onclick="toggleMeetingRecording()">
                                         <i class="fa fa-users"></i> Live Meeting
                                     </button>
                                     <button class="voice-btn record" id="voiceRecordBtn"
@@ -3254,7 +3314,8 @@
                                 <button class="es-btn full highlight" onclick="save()"><i class="fa fa-floppy-disk"></i>
                                     Save Note</button>
                                 <div class="download-dropdown-wrap">
-                                    <button class="es-btn full" onclick="toggleDownloadMenu()" id="downloadBtn"><i class="fa fa-download"></i>
+                                    <button class="es-btn full" onclick="toggleDownloadMenu()" id="downloadBtn"><i
+                                            class="fa fa-download"></i>
                                         Download</button>
                                     <div class="download-dropdown" id="downloadDropdown">
                                         <button class="download-dropdown-item" onclick="downloadAs('txt')">
@@ -3264,10 +3325,12 @@
                                             <i class="fa fa-file-pdf"></i> PDF Document <span class="dd-ext">.PDF</span>
                                         </button>
                                         <button class="download-dropdown-item" onclick="downloadAs('docx')">
-                                            <i class="fa fa-file-word"></i> Word Document <span class="dd-ext">.DOCX</span>
+                                            <i class="fa fa-file-word"></i> Word Document <span
+                                                class="dd-ext">.DOCX</span>
                                         </button>
                                         <button class="download-dropdown-item" onclick="downloadAs('jpg')">
-                                            <i class="fa fa-file-image"></i> Image Snapshot <span class="dd-ext">.JPG</span>
+                                            <i class="fa fa-file-image"></i> Image Snapshot <span
+                                                class="dd-ext">.JPG</span>
                                         </button>
                                     </div>
                                 </div>
@@ -3499,10 +3562,10 @@
                     fetch(`${API}/api/activity`).then(r => r.json()),
                     fetch(`${API}/api/analytics`).then(r => r.json()),
                 ]);
-                notes    = n;
-                trash    = t;
-                folders  = f;
-                allTags  = tg.map(tag => tag.name);  // backend returns [{name:'college'}, ...], extract strings
+                notes = n;
+                trash = t;
+                folders = f;
+                allTags = tg.map(tag => tag.name);  // backend returns [{name:'college'}, ...], extract strings
                 activity = ac;
                 analytics = an || { daily: {}, hourly: {}, streak: 0 };
             } catch (e) {
@@ -4630,7 +4693,7 @@
                                     };
                                     voiceRecognition.onend = () => {
                                         if (_voiceIsRecording) {
-                                            setTimeout(() => { if (_voiceIsRecording && voiceRecognition) try { voiceRecognition.start(); } catch(ex){} }, 300);
+                                            setTimeout(() => { if (_voiceIsRecording && voiceRecognition) try { voiceRecognition.start(); } catch (ex) { } }, 300);
                                         }
                                     };
                                     voiceRecognition.start();
@@ -4645,7 +4708,7 @@
         function stopVoiceRecord() {
             _voiceIsRecording = false; // FIXED: Set flag BEFORE stopping
             if (voiceRecognition) {
-                try { voiceRecognition.stop(); } catch(e) { /* ignore */ }
+                try { voiceRecognition.stop(); } catch (e) { /* ignore */ }
                 voiceRecognition = null;
             }
             const btn = document.getElementById('voiceRecordBtn');
@@ -5073,7 +5136,7 @@
                 const input = document.createElement('input');
                 input.className = 'modal-input';
                 input.id = `speakerName${i}`;
-                input.placeholder = `Speaker ${i} name (e.g. ${['Alice','Bob','Charlie','Diana','Eve','Frank'][i-1] || 'Name'})`;
+                input.placeholder = `Speaker ${i} name (e.g. ${['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank'][i - 1] || 'Name'})`;
                 container.appendChild(input);
             }
         }
@@ -5103,7 +5166,7 @@
             if (typeof AIMeeting !== 'undefined') {
                 AIMeeting.start(names).then(ok => {
                     if (ok) console.log('AI Meeting transcription started alongside Web Speech API');
-                }).catch(() => {});
+                }).catch(() => { });
             }
         }
 
@@ -5546,7 +5609,7 @@
                                 // FIXED: Always create a fresh instance to avoid stale state
                                 const SpeechR = window.SpeechRecognition || window.webkitSpeechRecognition;
                                 if (recognition) {
-                                    try { recognition.stop(); } catch(ex) { /* ignore */ }
+                                    try { recognition.stop(); } catch (ex) { /* ignore */ }
                                 }
                                 recognition = new SpeechR();
                                 recognition.lang = 'en-US'; // FIXED: Match initial config
@@ -5588,7 +5651,7 @@
 
                 // Stop recognition
                 if (recognition) {
-                    try { recognition.onend = null; } catch(e) { /* ignore */ } // FIXED: Remove end handler first
+                    try { recognition.onend = null; } catch (e) { /* ignore */ } // FIXED: Remove end handler first
                     try { recognition.stop(); } catch (e) { /* ignore */ }
                     recognition = null;
                 }
@@ -5628,7 +5691,7 @@
             function cleanup() {
                 isRecording = false;
                 if (recognition) {
-                    try { recognition.onend = null; } catch(e) { /* ignore */ } // FIXED
+                    try { recognition.onend = null; } catch (e) { /* ignore */ } // FIXED
                     try { recognition.stop(); } catch (e) { /* ignore */ }
                     recognition = null;
                 }
@@ -5697,16 +5760,16 @@
 
     <!-- Auth: Load user profile -->
     <script>
-        fetch('/auth/status').then(r=>r.json()).then(d=>{
-            if(d.authenticated && d.user){
-                const area=document.getElementById('userProfileArea');
-                if(area) area.style.display='flex';
-                const av=document.getElementById('userAvatar');
-                if(av && d.user.picture){av.src=d.user.picture;} else if(av){av.style.display='none';}
-                const nm=document.getElementById('userNameTopbar');
-                if(nm) nm.textContent=d.user.name||d.user.email||'';
+        fetch('/auth/status').then(r => r.json()).then(d => {
+            if (d.authenticated && d.user) {
+                const area = document.getElementById('userProfileArea');
+                if (area) area.style.display = 'flex';
+                const av = document.getElementById('userAvatar');
+                if (av && d.user.picture) { av.src = d.user.picture; } else if (av) { av.style.display = 'none'; }
+                const nm = document.getElementById('userNameTopbar');
+                if (nm) nm.textContent = d.user.name || d.user.email || '';
             }
-        }).catch(()=>{});
+        }).catch(() => { });
     </script>
 </body>
 
