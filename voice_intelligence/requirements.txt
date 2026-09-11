@@ -1,0 +1,22 @@
+# Voice & Speaker Intelligence (Feature #1) Dependencies
+# Owner: Vedant (Member A)
+# ============================================================
+
+# Task 1: High-performance speech-to-text with word-level timestamps
+faster-whisper>=1.0.0
+
+# Task 2 & 3: Speaker diarization and multi-track segmentation
+pyannote.audio>=3.1.1
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Task 4 & 5: Speaker recognition and voice fingerprinting (ECAPA-TDNN)
+speechbrain>=1.0.0
+
+# Audio handling & mathematical computing
+soundfile>=0.12.0
+librosa>=0.10.0
+numpy>=1.24.0
+scipy>=1.10.0
+pydub>=0.25.1
+python-dotenv>=1.0.0
