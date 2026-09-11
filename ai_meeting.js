@@ -30,6 +30,7 @@ const AIMeeting = (() => {
     let lastSpeakerIndex = -1;
     let aiAvailable = false;
     let pendingChunks = 0;
+    let enrolledProfileNames = []; // Names of enrolled voice profiles
 
     // ── AI Server Health Check ──
     async function checkAIServer() {
@@ -77,7 +78,11 @@ const AIMeeting = (() => {
             const res = await fetch(`${AI_API}/ai/session/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ speakerCount: names.length, speakerNames: names })
+                body: JSON.stringify({
+                    speakerCount: names.length,
+                    speakerNames: names,
+                    useVoiceRecognition: true
+                })
             });
             const data = await res.json();
             sessionId = data.sessionId;
@@ -94,6 +99,9 @@ const AIMeeting = (() => {
             if (audioStream) { audioStream.getTracks().forEach(t => t.stop()); audioStream = null; }
             return false;
         }
+
+        // Fetch enrolled voice profiles (for speaker recognition)
+        await _fetchEnrolledProfiles();
 
         // Setup MediaRecorder
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -183,11 +191,21 @@ const AIMeeting = (() => {
             text = text.charAt(0).toUpperCase() + text.slice(1);
             if (!/[.!?]$/.test(text)) text += '.';
 
+            // Determine confidence indicator
+            const confidence = seg.confidence || 0;
+            let confidenceMark = '';
+            if (enrolledProfileNames.length > 0 && confidence >= 0.70) {
+                confidenceMark = ' ✓';  // Recognized speaker
+            } else if (enrolledProfileNames.length > 0 && confidence > 0 && confidence < 0.70) {
+                confidenceMark = ' ?';  // Uncertain match
+            }
+
             const len = window.quill.getLength();
 
             // Insert speaker label if speaker changed
             if (speakerIdx !== lastSpeakerIndex) {
-                window.quill.insertText(len - 1, '\n' + name + ': ', { bold: true, italic: true, color });
+                const labelText = name + confidenceMark + ': ';
+                window.quill.insertText(len - 1, '\n' + labelText, { bold: true, italic: true, color });
                 lastSpeakerIndex = speakerIdx;
             }
 
@@ -311,6 +329,21 @@ const AIMeeting = (() => {
     function showAIToast(msg, type) {
         if (typeof showToast === 'function') { showToast(msg, type); return; }
         console.log(`[AI Meeting] ${type}: ${msg}`);
+    }
+
+    // ── Fetch enrolled voice profiles ──
+    async function _fetchEnrolledProfiles() {
+        try {
+            const res = await fetch(`${AI_API}/ai/voice/profiles`);
+            if (res.ok) {
+                const profiles = await res.json();
+                enrolledProfileNames = profiles.map(p => p.userName);
+                console.log(`[AI Meeting] ${enrolledProfileNames.length} enrolled voice profiles loaded`);
+            }
+        } catch (e) {
+            enrolledProfileNames = [];
+            console.debug('[AI Meeting] Could not fetch voice profiles (optional)');
+        }
     }
 
     // ── Inject the AI Meeting UI Panel ──

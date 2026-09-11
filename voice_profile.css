@@ -1,0 +1,459 @@
+/* ══════════════════════════════════════════════════════
+   AirScribe — Voice Profile Styles
+   Enrollment UI, mic testing, profile management
+   Matches existing AirScribe design system
+   ══════════════════════════════════════════════════════ */
+
+/* ── Voice Profile Page Layout ── */
+.vp-container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 10px 0;
+}
+
+.vp-section {
+    background: var(--bg-2, #111d32);
+    border: 1px solid var(--border, rgba(255,255,255,0.06));
+    border-radius: var(--radius-xl, 22px);
+    padding: 24px;
+    margin-bottom: 18px;
+    transition: border-color 0.3s ease;
+}
+
+.vp-section:hover {
+    border-color: var(--border-med, rgba(255,255,255,0.11));
+}
+
+.vp-section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text-1, #eef4ff);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.vp-section-title i {
+    color: var(--accent-2, #a78bfa);
+    font-size: 15px;
+}
+
+.vp-section-desc {
+    font-size: 12.5px;
+    color: var(--text-3, #4a6080);
+    margin-bottom: 18px;
+    line-height: 1.5;
+}
+
+/* ── Enrollment Card ── */
+.vp-enrollment-card {
+    background: var(--bg-3, #162040);
+    border: 1px dashed var(--border-med, rgba(255,255,255,0.11));
+    border-radius: var(--radius-lg, 16px);
+    padding: 30px 24px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.vp-enrollment-card.recording {
+    border-color: var(--accent-2, #a78bfa);
+    border-style: solid;
+    background: rgba(167, 139, 250, 0.05);
+}
+
+.vp-enrollment-card.complete {
+    border-color: var(--accent-3, #34d399);
+    border-style: solid;
+    background: rgba(52, 211, 153, 0.05);
+}
+
+.vp-record-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(167, 139, 250, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    transition: all 0.3s ease;
+}
+
+.vp-record-icon i {
+    font-size: 28px;
+    color: var(--accent-2, #a78bfa);
+    transition: all 0.3s ease;
+}
+
+.vp-record-icon.recording {
+    background: rgba(248, 113, 113, 0.15);
+    animation: vp-pulse 1.5s infinite;
+}
+
+.vp-record-icon.recording i {
+    color: var(--red, #f87171);
+}
+
+.vp-record-icon.complete {
+    background: rgba(52, 211, 153, 0.15);
+}
+
+.vp-record-icon.complete i {
+    color: var(--accent-3, #34d399);
+}
+
+@keyframes vp-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.3); transform: scale(1); }
+    50% { box-shadow: 0 0 20px 8px rgba(248, 113, 113, 0.1); transform: scale(1.05); }
+}
+
+.vp-enrollment-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1, #eef4ff);
+    margin-bottom: 6px;
+}
+
+.vp-enrollment-hint {
+    font-size: 12px;
+    color: var(--text-3, #4a6080);
+    margin-bottom: 18px;
+    line-height: 1.5;
+}
+
+/* ── Progress Ring ── */
+.vp-progress-container {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+}
+
+.vp-progress-ring {
+    transform: rotate(-90deg);
+}
+
+.vp-progress-ring-circle {
+    fill: none;
+    stroke: var(--bg-3, #162040);
+    stroke-width: 4;
+}
+
+.vp-progress-ring-progress {
+    fill: none;
+    stroke: var(--accent-2, #a78bfa);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.vp-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-1, #eef4ff);
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Mic Level Visualizer ── */
+.vp-mic-level {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    height: 30px;
+    margin: 12px 0;
+}
+
+.vp-mic-bar {
+    width: 4px;
+    background: var(--accent-2, #a78bfa);
+    border-radius: 2px;
+    transition: height 0.1s ease;
+    min-height: 3px;
+}
+
+/* ── Buttons ── */
+.vp-btn {
+    padding: 10px 24px;
+    border-radius: var(--radius-md, 10px);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.vp-btn-primary {
+    background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+    color: white;
+    border: none;
+}
+
+.vp-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(167, 139, 250, 0.3);
+}
+
+.vp-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.vp-btn-danger {
+    border-color: var(--red, #f87171);
+    color: var(--red, #f87171);
+    background: rgba(248, 113, 113, 0.08);
+}
+
+.vp-btn-danger:hover {
+    background: rgba(248, 113, 113, 0.18);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(248, 113, 113, 0.15);
+}
+
+.vp-btn-ghost {
+    border-color: var(--border-med, rgba(255,255,255,0.11));
+    color: var(--text-2, #8fa3c8);
+    background: transparent;
+}
+
+.vp-btn-ghost:hover {
+    border-color: var(--accent, #4fd1ff);
+    color: var(--text-1, #eef4ff);
+    background: rgba(79, 209, 255, 0.05);
+}
+
+.vp-btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* ── Profile List ── */
+.vp-profile-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-3, #162040);
+    border: 1px solid var(--border, rgba(255,255,255,0.06));
+    border-radius: var(--radius-lg, 16px);
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.vp-profile-item:hover {
+    border-color: var(--accent, #4fd1ff);
+    background: var(--bg-hover, #162343);
+}
+
+.vp-profile-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.vp-profile-avatar i {
+    font-size: 18px;
+    color: white;
+}
+
+.vp-profile-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.vp-profile-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1, #eef4ff);
+    margin-bottom: 2px;
+}
+
+.vp-profile-meta {
+    font-size: 11px;
+    color: var(--text-3, #4a6080);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.vp-profile-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.vp-profile-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border, rgba(255,255,255,0.06));
+    background: transparent;
+    color: var(--text-3, #4a6080);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.vp-profile-action-btn:hover {
+    border-color: var(--accent, #4fd1ff);
+    color: var(--text-1, #eef4ff);
+    background: rgba(79, 209, 255, 0.08);
+}
+
+.vp-profile-action-btn.danger:hover {
+    border-color: var(--red, #f87171);
+    color: var(--red, #f87171);
+    background: rgba(248, 113, 113, 0.08);
+}
+
+/* ── Status Badge ── */
+.vp-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.vp-status.enrolled {
+    color: var(--accent-3, #34d399);
+    background: rgba(52, 211, 153, 0.12);
+}
+
+.vp-status.not-enrolled {
+    color: var(--text-3, #4a6080);
+    background: var(--bg-3, #162040);
+}
+
+.vp-status.error {
+    color: var(--red, #f87171);
+    background: rgba(248, 113, 113, 0.12);
+}
+
+/* ── Mic Test ── */
+.vp-mic-test {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-3, #162040);
+    border-radius: var(--radius-md, 10px);
+    border: 1px solid var(--border, rgba(255,255,255,0.06));
+}
+
+.vp-mic-test-status {
+    font-size: 12px;
+    color: var(--text-2, #8fa3c8);
+    flex: 1;
+}
+
+.vp-mic-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-3, #4a6080);
+    transition: all 0.3s ease;
+}
+
+.vp-mic-indicator.active {
+    background: var(--accent-3, #34d399);
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.vp-mic-indicator.error {
+    background: var(--red, #f87171);
+    box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+}
+
+/* ── Empty State ── */
+.vp-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-3, #4a6080);
+}
+
+.vp-empty i {
+    font-size: 40px;
+    margin-bottom: 12px;
+    color: var(--border-med, rgba(255,255,255,0.11));
+}
+
+.vp-empty p {
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* ── Info Box ── */
+.vp-info-box {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(79, 209, 255, 0.06);
+    border: 1px solid rgba(79, 209, 255, 0.12);
+    border-radius: var(--radius-md, 10px);
+    margin-top: 14px;
+}
+
+.vp-info-box i {
+    color: var(--accent, #4fd1ff);
+    font-size: 13px;
+    margin-top: 1px;
+    flex-shrink: 0;
+}
+
+.vp-info-box p {
+    font-size: 11.5px;
+    color: var(--text-2, #8fa3c8);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .vp-container {
+        padding: 0 4px;
+    }
+    .vp-section {
+        padding: 18px 14px;
+        border-radius: 16px;
+    }
+    .vp-btn-group {
+        flex-direction: column;
+    }
+    .vp-profile-item {
+        flex-wrap: wrap;
+    }
+    .vp-profile-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

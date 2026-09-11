@@ -34,6 +34,16 @@ load_dotenv()
 app = Flask(__name__, static_folder=None)
 CORS(app, resources={r"/ai/*": {"origins": "*"}})
 
+# ── Register voice enrollment routes from ai_server package ──
+try:
+    from ai_server.voice_enrollment import voice_enrollment_bp
+    app.register_blueprint(voice_enrollment_bp)
+    print("✓ Voice enrollment routes registered (/ai/voice/*)")
+except ImportError:
+    print("ℹ  ai_server package not found — voice enrollment disabled")
+    print("   (This is fine if you haven't installed the speaker recognition dependencies)")
+
+
 # ── Configuration ──
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL", "base")  # tiny, base, small, medium, large
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp_audio")
@@ -123,6 +133,9 @@ class MeetingSession:
 
         # Full transcript history
         self.transcript = []
+
+        # Voice recognition: enrolled profiles for this session
+        self.enrolled_profiles = []
 
     def get_or_assign_speaker_index(self, diarization_label):
         """
@@ -241,6 +254,23 @@ def transcribe_and_diarize(audio_path, session):
     results = []
 
     try:
+        # ── Enhanced Pipeline Bridge ──
+        # If the new ai_server.pipeline module is installed, use it for
+        # speaker recognition. Otherwise, fall through to the existing logic.
+        if session.enrolled_profiles:
+            try:
+                from ai_server.pipeline import process_audio_chunk
+                results = process_audio_chunk(
+                    audio_path, session, session.enrolled_profiles
+                )
+                if results:
+                    return results
+                # If pipeline returned empty, fall through to existing logic
+            except ImportError:
+                pass  # ai_server not installed — use existing logic
+            except Exception as e:
+                print(f"\u26a0\ufe0f  Enhanced pipeline error: {e} \u2014 falling back")
+
         # Step 1: Transcribe with Whisper
         model = get_whisper_model()
         whisper_result = model.transcribe(
@@ -404,10 +434,21 @@ def start_session():
         if i >= session.next_speaker_index:
             session.next_speaker_index = i + 1
 
+    # ── Voice Recognition: Load enrolled profiles if requested ──
+    if data.get("useVoiceRecognition", False):
+        try:
+            from ai_server.embeddings import get_all_embeddings
+            session.enrolled_profiles = get_all_embeddings()
+            print(f"  Loaded {len(session.enrolled_profiles)} voice profiles for recognition")
+        except ImportError:
+            print("  ai_server.embeddings not available — voice recognition disabled")
+        except Exception as e:
+            print(f"  Could not load voice profiles: {e}")
+
     with sessions_lock:
         sessions[session_id] = session
 
-    print(f"✦ New meeting session: {session_id} ({speaker_count} speakers)")
+    print(f"* New meeting session: {session_id} ({speaker_count} speakers)")
     return jsonify(session.to_dict()), 201
 
 
@@ -636,12 +677,17 @@ if __name__ == "__main__":
     port = int(os.getenv("AI_PORT", 5001))
     debug = os.getenv("AI_DEBUG", "True").lower() == "true"
 
-    print(f"\n{'═' * 55}")
-    print(f"  ✦ AirScribe AI Meeting Server")
+    print(f"\n{'=' * 55}")
+    print(f"  * AirScribe AI Meeting Server")
     print(f"    Running at http://localhost:{port}")
     print(f"    Whisper model: {WHISPER_MODEL_SIZE}")
     print(f"    Audio temp folder: {UPLOAD_FOLDER}")
-    print(f"{'═' * 55}\n")
+    has_enrollment = 'voice_enrollment' in [bp.name for bp in app.iter_blueprints()]
+    print(f"    Voice enrollment: {'enabled' if has_enrollment else 'disabled'}")
+    print(f"    Routes: /ai/health, /ai/session/*, /ai/transcribe")
+    if has_enrollment:
+        print(f"            /ai/voice/enroll, /ai/voice/profiles, /ai/voice/profile/*")
+    print(f"{'=' * 55}\n")
 
     # Pre-load models if desired (uncomment to load at startup)
     # get_whisper_model()

@@ -13,11 +13,23 @@ pymongo
 # Audio processing
 pydub>=0.25.1
 
-# Speaker diarization (optional — falls back to simple method if not installed)
-# Requires a HuggingFace token with access to pyannote models
-# pyannote.audio>=3.1.1
-# torch>=2.0.0
-# torchaudio>=2.0.0
+# Speaker diarization (requires HuggingFace token for pyannote models)
+pyannote.audio>=3.1.1
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Speaker recognition (voice enrollment & identification)
+speechbrain>=1.0.0
+
+# Audio processing
+soundfile>=0.12.0
+librosa>=0.10.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Encrypted note store (Feature #6)
+cryptography>=41.0.0
+sentence-transformers>=2.2.0
 
 # Note: ffmpeg must be installed on your system for audio conversion
 # Windows: choco install ffmpeg  OR  download from https://ffmpeg.org

@@ -3094,6 +3094,8 @@
                         class="fa fa-chart-bar"></i><span>Analytics</span></button>
                 <button class="nav-btn" data-view="graph" onclick="show('graph',this)"><i
                         class="fa fa-diagram-project"></i><span>Knowledge Graph</span></button>
+                <button class="nav-btn" data-view="voiceprofile" onclick="show('voiceprofile',this)"><i
+                        class="fa fa-microphone-lines"></i><span>Voice Profile</span></button>
                 <button class="nav-btn" data-view="trash" onclick="show('trash',this)"><i
                         class="fa fa-trash"></i><span>Trash</span><span id="trashBadge"
                         class="badge hidden">0</span></button>
@@ -3483,6 +3485,15 @@
                     <div id="trashList" class="notes-grid"></div>
                 </div>
 
+                <!-- Voice Profile View -->
+                <div id="voiceprofile" class="view">
+                    <div class="view-header">
+                        <h2><i class="fa fa-microphone-lines" style="color:var(--accent-2);margin-right:8px"></i>Voice Profile</h2>
+                    </div>
+                    <p class="hint-text">Enroll your voice for automatic speaker recognition in meetings.</p>
+                    <div id="voiceProfileContent"></div>
+                </div>
+
             </section>
             <footer>
                 <span>AirScribe — Developed by ASEP GROUP 9</span>
@@ -3766,7 +3777,7 @@
             const titles = {
                 dashboard: 'Dashboard', new: editIndex >= 0 ? 'Edit Note' : 'New Note', recent: 'Recent Notes',
                 pinned: 'Pinned Notes', reminders: 'Reminders', analytics: 'Analytics', graph: 'Knowledge Graph',
-                library: currentFolder || 'All Notes', trash: 'Trash'
+                voiceprofile: 'Voice Profile', library: currentFolder || 'All Notes', trash: 'Trash'
             };
             document.getElementById('pageTitle').textContent = titles[id] || id;
             currentView = id;
@@ -3779,6 +3790,7 @@
             if (id === 'analytics') renderAnalytics();
             if (id === 'graph') renderGraph();
             if (id === 'new' && editIndex < 0) resetEditor();
+            if (id === 'voiceprofile' && typeof VoiceProfile !== 'undefined') VoiceProfile.loadProfiles();
             document.getElementById('searchResults').classList.add('hidden');
         }
 
@@ -4565,22 +4577,73 @@
             el.innerHTML = filtered.length ? filtered.map(n => noteCard(n, notes.indexOf(n))).join('') : emptyHtml('fa-search', 'No notes match your search.');
         }
 
+        // ── SEMANTIC SEARCH (Feature #6) ──
+        let _searchDebounce = null;
         function globalSearchHandler(q) {
             const dropdown = document.getElementById('searchResults');
-            q = q.trim().toLowerCase();
+            q = q.trim();
             if (!q) { dropdown.classList.add('hidden'); return; }
+
+            // For very short queries, use local metadata-only search (instant)
+            if (q.length < 3) {
+                _localMetadataSearch(q.toLowerCase(), dropdown);
+                return;
+            }
+
+            // Debounce semantic search (needs server round-trip)
+            clearTimeout(_searchDebounce);
+            dropdown.innerHTML = '<div class="search-empty"><i class="fa fa-spinner fa-spin"></i> Searching...</div>';
+            dropdown.classList.remove('hidden');
+
+            _searchDebounce = setTimeout(async () => {
+                try {
+                    const res = await fetch(`${API}/api/search/semantic`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: q, top_k: 10 })
+                    });
+                    if (!res.ok) throw new Error('Search failed');
+                    const results = await res.json();
+
+                    if (!results.length) {
+                        // Fallback: try local metadata search
+                        _localMetadataSearch(q.toLowerCase(), dropdown);
+                        return;
+                    }
+
+                    let filtersHtml = '<div class="search-filters">';
+                    filtersHtml += '<span class="search-filter-btn active">Semantic</span>';
+                    const searchFolders = [...new Set(results.map(n => n.folder))];
+                    searchFolders.forEach(f => { filtersHtml += `<span class="search-filter-btn">${escHtml(f)}</span>`; });
+                    filtersHtml += '</div>';
+
+                    dropdown.innerHTML = filtersHtml + results.map(r => {
+                        const noteIdx = notes.findIndex(n => n._id === r._id);
+                        const scorePercent = Math.round((r.score || 0) * 100);
+                        const scoreColor = scorePercent >= 70 ? '#34d399' : scorePercent >= 40 ? '#fbbf24' : '#4a6080';
+                        return `<div class="search-item" onclick="openNote(${noteIdx >= 0 ? noteIdx : 0});document.getElementById('globalSearch').value='';document.getElementById('searchResults').classList.add('hidden')">
+                            <div class="search-item-title">${escHtml(r.name)} <span style="float:right;font-size:10px;color:${scoreColor};font-weight:600">${scorePercent}%</span></div>
+                            <div class="search-item-meta">${escHtml((r.text || '').substring(0, 80))}</div>
+                            <div style="margin-top:4px">${(r.tags || []).slice(0, 3).map(t => `<span class="note-tag-chip">#${escHtml(t)}</span>`).join(' ')} <span class="note-folder-tag" style="margin-left:4px"><i class="fa fa-folder"></i> ${escHtml(r.folder || 'General')}</span></div>
+                        </div>`;
+                    }).join('');
+                    dropdown.classList.remove('hidden');
+                } catch (e) {
+                    console.error('Semantic search error:', e);
+                    // Fallback to local search
+                    _localMetadataSearch(q.toLowerCase(), dropdown);
+                }
+            }, 350);
+        }
+
+        // Local metadata-only search (no server, works on in-memory notes)
+        function _localMetadataSearch(q, dropdown) {
             const results = notes.filter(n =>
                 n.name.toLowerCase().includes(q) ||
                 (n.text || '').toLowerCase().includes(q) ||
                 (n.tags || []).some(t => t.includes(q)) ||
                 (n.folder || '').toLowerCase().includes(q)
             ).slice(0, 8);
-
-            let filtersHtml = '<div class="search-filters">';
-            filtersHtml += '<span class="search-filter-btn active">All</span>';
-            const searchFolders = [...new Set(results.map(n => n.folder))];
-            searchFolders.forEach(f => { filtersHtml += `<span class="search-filter-btn">${escHtml(f)}</span>`; });
-            filtersHtml += '</div>';
 
             const highlightMatch = (text, query) => {
                 if (!text) return '';
@@ -4592,7 +4655,7 @@
             };
 
             dropdown.innerHTML = results.length
-                ? filtersHtml + results.map(n => `<div class="search-item" onclick="openNote(${notes.indexOf(n)});document.getElementById('globalSearch').value='';document.getElementById('searchResults').classList.add('hidden')">
+                ? results.map(n => `<div class="search-item" onclick="openNote(${notes.indexOf(n)});document.getElementById('globalSearch').value='';document.getElementById('searchResults').classList.add('hidden')">
         <div class="search-item-title">${highlightMatch(n.name, q)}</div>
         <div class="search-item-meta">${highlightMatch(n.text || '', q)}</div>
         <div style="margin-top:4px">${(n.tags || []).slice(0, 3).map(t => `<span class="note-tag-chip">#${escHtml(t)}</span>`).join(' ')} <span class="note-folder-tag" style="margin-left:4px"><i class="fa fa-folder"></i> ${escHtml(n.folder || 'General')}</span></div>
@@ -5757,6 +5820,10 @@
 
     <!-- AI LiveVoice — Accurate Real-Time Voice Typing -->
     <script src="AirScribe_AI_LiveVoice/livevoice.js"></script>
+
+    <!-- Voice Profile — Speaker Enrollment & Recognition -->
+    <link rel="stylesheet" href="voice_profile.css">
+    <script src="voice_profile.js"></script>
 
     <!-- Auth: Load user profile -->
     <script>

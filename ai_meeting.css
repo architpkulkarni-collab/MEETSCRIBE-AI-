@@ -186,3 +186,41 @@
         bottom: 60px;
     }
 }
+
+/* ── Speaker Recognition Confidence Badges ── */
+.ai-confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.ai-confidence-badge.recognized {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.15);
+}
+
+.ai-confidence-badge.uncertain {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+}
+
+.ai-speaker-verified::after {
+    content: ' ✓';
+    color: #34d399;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.ai-speaker-uncertain::after {
+    content: ' ?';
+    color: #fbbf24;
+    font-size: 11px;
+    font-weight: 700;
+}

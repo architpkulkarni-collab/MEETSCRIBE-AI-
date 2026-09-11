@@ -1,7 +1,12 @@
 """
 AirScribe Backend — Flask + MongoDB
 Full REST API for the AirScribe smart notes application.
+Includes Feature #6: Searchable Encrypted Note Store.
 """
+
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("airscribe.backend")
 
 from flask import Flask, jsonify, request, send_from_directory, session, redirect
 from flask_cors import CORS
@@ -22,6 +27,15 @@ except ImportError:
     make_google_blueprint = None
 
 load_dotenv()
+
+# ── Encrypted Note Store (Feature #6) ──
+from secure_notes import (
+    prepare_note_for_storage,
+    prepare_note_for_response,
+    prepare_notes_for_response,
+    re_encrypt_for_new_id
+)
+from note_embeddings import generate_embedding, semantic_search
 
 # ── App Setup ──
 app = Flask(__name__, static_folder=None)
@@ -51,7 +65,9 @@ if make_google_blueprint:
     app.register_blueprint(google_bp, url_prefix="/login")
 
 # ── MongoDB Setup ──
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://archit:archit123@airscribe.c5pcugl.mongodb.net/airscribe?retryWrites=true&w=majority")
+MONGO_URI = os.getenv("MONGO_URI", "")
+if not MONGO_URI:
+    raise ValueError("MONGO_URI environment variable is required. Set it in .env")
 DB_NAME = os.getenv("DB_NAME", "airscribe")
 
 client = MongoClient(MONGO_URI)
@@ -65,6 +81,7 @@ tags_col = db["tags"]
 activity_col = db["activity"]
 analytics_col = db["analytics"]
 users_col = db["users"]
+voice_profiles_col = db["voice_profiles"]  # Speaker voice embeddings
 
 
 # ── Helpers ──
@@ -102,45 +119,77 @@ def seed_defaults():
             {"name": "Personal", "color": "#fbbf24"},
         ]
         folders_col.insert_many(default_folders)
-        print("✓ Seeded default folders")
+        print("[OK] Seeded default folders")
 
     if tags_col.count_documents({}) == 0:
         default_tags = ["college", "ideas", "project", "important", "todo"]
         tags_col.insert_many([{"name": t} for t in default_tags])
-        print("✓ Seeded default tags")
+        print("[OK] Seeded default tags")
 
     get_analytics()
-    print("✓ Analytics initialized")
+    print("[OK] Analytics initialized")
 
 
 # ═══════════════════════════════════════════════════
 #                    API ROUTES
 # ═══════════════════════════════════════════════════
 
+
+def get_current_user_id():
+    """Get the current user's ID from the session, or None if not logged in."""
+    user = session.get('user')
+    if user:
+        return user.get('id')
+    return None
+
+
+def require_user_id():
+    """Get the current user's ID, raising 401 if not authenticated."""
+    uid = get_current_user_id()
+    if not uid:
+        return None
+    return uid
+
+
 # ── NOTES ──
 
 @app.route("/api/notes", methods=["GET"])
 def get_notes():
-    """Get all notes, sorted by most recently updated."""
-    notes = list(notes_col.find().sort("updatedAt", -1))
-    return jsonify(serialize_list(notes))
+    """Get all notes for the current user, sorted by most recently updated."""
+    user_id = get_current_user_id()
+    query = {"userId": user_id} if user_id else {}
+    raw_notes = list(notes_col.find(query).sort("updatedAt", -1))
+    serialized = serialize_list(raw_notes)
+    # Decrypt all notes before returning to frontend
+    decrypted = prepare_notes_for_response(serialized)
+    return jsonify(decrypted)
 
 
 @app.route("/api/notes/<note_id>", methods=["GET"])
 def get_note(note_id):
-    """Get a single note by ID."""
-    note = notes_col.find_one({"_id": ObjectId(note_id)})
+    """Get a single note by ID (with decryption)."""
+    user_id = get_current_user_id()
+    query = {"_id": ObjectId(note_id)}
+    if user_id:
+        query["userId"] = user_id
+    note = notes_col.find_one(query)
     if not note:
         return jsonify({"error": "Note not found"}), 404
-    return jsonify(serialize_doc(note))
+    serialized = serialize_doc(note)
+    decrypted = prepare_note_for_response(serialized)
+    return jsonify(decrypted)
 
 
 @app.route("/api/notes", methods=["POST"])
 def create_note():
-    """Create a new note."""
+    """Create a new note (encrypted)."""
     data = request.json
     now = datetime.utcnow().isoformat() + "Z"
+    user_id = get_current_user_id()
+    new_obj_id = ObjectId()
     note = {
+        "_id": new_obj_id,
+        "userId": user_id,
         "name": data.get("name", "Untitled"),
         "text": data.get("text", ""),
         "content": data.get("content", ""),
@@ -153,17 +202,29 @@ def create_note():
         "createdAt": data.get("createdAt", now),
         "updatedAt": data.get("updatedAt", now),
     }
-    result = notes_col.insert_one(note)
-    note["_id"] = str(result.inserted_id)
+    # Encrypt text + content, generate embedding
+    encrypted_note = prepare_note_for_storage(note, note_id=str(new_obj_id))
+    notes_col.insert_one(encrypted_note)
+    # Return decrypted version to frontend
+    note["_id"] = str(new_obj_id)
     return jsonify(note), 201
 
 
 @app.route("/api/notes/<note_id>", methods=["PUT"])
 def update_note(note_id):
-    """Update an existing note."""
+    """Update an existing note (re-encrypts content)."""
     data = request.json
     now = datetime.utcnow().isoformat() + "Z"
+    user_id = get_current_user_id()
+    # Verify the note belongs to this user before updating
+    query = {"_id": ObjectId(note_id)}
+    if user_id:
+        query["userId"] = user_id
+    existing = notes_col.find_one(query)
+    if not existing:
+        return jsonify({"error": "Note not found"}), 404
     update_data = {
+        "userId": user_id,
         "name": data.get("name", "Untitled"),
         "text": data.get("text", ""),
         "content": data.get("content", ""),
@@ -175,24 +236,34 @@ def update_note(note_id):
         "linkedNotes": data.get("linkedNotes", []),
         "updatedAt": data.get("updatedAt", now),
     }
-    result = notes_col.update_one(
-        {"_id": ObjectId(note_id)},
-        {"$set": update_data}
+    # Encrypt text + content, generate new embedding
+    encrypted_data = prepare_note_for_storage(update_data, note_id=note_id)
+    # Remove old plaintext fields if they exist, set encrypted ones
+    notes_col.update_one(
+        query,
+        {
+            "$set": encrypted_data,
+            "$unset": {"text": "", "content": ""}  # Remove legacy plaintext fields
+        }
     )
-    if result.matched_count == 0:
-        return jsonify({"error": "Note not found"}), 404
+    # Return decrypted version to frontend
     updated = notes_col.find_one({"_id": ObjectId(note_id)})
-    return jsonify(serialize_doc(updated))
+    serialized = serialize_doc(updated)
+    return jsonify(prepare_note_for_response(serialized))
 
 
 @app.route("/api/notes/<note_id>", methods=["DELETE"])
 def delete_note(note_id):
-    """Move a note to trash (soft delete)."""
-    note = notes_col.find_one({"_id": ObjectId(note_id)})
+    """Move a note to trash (soft delete). Encryption state is preserved."""
+    user_id = get_current_user_id()
+    query = {"_id": ObjectId(note_id)}
+    if user_id:
+        query["userId"] = user_id
+    note = notes_col.find_one(query)
     if not note:
         return jsonify({"error": "Note not found"}), 404
 
-    # Move to trash
+    # Move to trash — note stays encrypted
     now = datetime.utcnow().isoformat() + "Z"
     note["deletedAt"] = now
     note["originalId"] = str(note["_id"])
@@ -207,13 +278,17 @@ def delete_note(note_id):
 @app.route("/api/notes/<note_id>/pin", methods=["PATCH"])
 def toggle_pin(note_id):
     """Toggle the pinned status of a note."""
-    note = notes_col.find_one({"_id": ObjectId(note_id)})
+    user_id = get_current_user_id()
+    query = {"_id": ObjectId(note_id)}
+    if user_id:
+        query["userId"] = user_id
+    note = notes_col.find_one(query)
     if not note:
         return jsonify({"error": "Note not found"}), 404
 
     new_pin = not note.get("pinned", False)
     notes_col.update_one(
-        {"_id": ObjectId(note_id)},
+        query,
         {"$set": {"pinned": new_pin}}
     )
     return jsonify({"pinned": new_pin})
@@ -221,26 +296,36 @@ def toggle_pin(note_id):
 
 @app.route("/api/notes/<note_id>/duplicate", methods=["POST"])
 def duplicate_note(note_id):
-    """Duplicate a note."""
-    note = notes_col.find_one({"_id": ObjectId(note_id)})
+    """Duplicate a note (re-encrypts with new nonces)."""
+    user_id = get_current_user_id()
+    query = {"_id": ObjectId(note_id)}
+    if user_id:
+        query["userId"] = user_id
+    note = notes_col.find_one(query)
     if not note:
         return jsonify({"error": "Note not found"}), 404
 
     now = datetime.utcnow().isoformat() + "Z"
+    # Decrypt the original note first
+    decrypted = prepare_note_for_response(serialize_doc(note.copy()))
     new_note = {
-        "name": note["name"] + " (Copy)",
-        "text": note.get("text", ""),
-        "content": note.get("content", ""),
-        "folder": note.get("folder", "General"),
-        "color": note.get("color", ""),
+        "userId": user_id,
+        "name": decrypted["name"] + " (Copy)",
+        "text": decrypted.get("text", ""),
+        "content": decrypted.get("content", ""),
+        "folder": decrypted.get("folder", "General"),
+        "color": decrypted.get("color", ""),
         "reminder": None,
         "pinned": False,
-        "tags": note.get("tags", []),
-        "linkedNotes": note.get("linkedNotes", []),
+        "tags": decrypted.get("tags", []),
+        "linkedNotes": decrypted.get("linkedNotes", []),
         "createdAt": now,
         "updatedAt": now,
     }
-    result = notes_col.insert_one(new_note)
+    # Encrypt the duplicate with fresh nonces
+    encrypted_new = prepare_note_for_storage(new_note, note_id="")
+    result = notes_col.insert_one(encrypted_new)
+    # Return decrypted version to frontend
     new_note["_id"] = str(result.inserted_id)
     return jsonify(new_note), 201
 
@@ -249,32 +334,30 @@ def duplicate_note(note_id):
 
 @app.route("/api/trash", methods=["GET"])
 def get_trash():
-    """Get all trashed notes."""
-    trashed = list(trash_col.find().sort("deletedAt", -1))
-    return jsonify(serialize_list(trashed))
+    """Get all trashed notes (decrypted for display)."""
+    user_id = get_current_user_id()
+    query = {"userId": user_id} if user_id else {}
+    trashed = list(trash_col.find(query).sort("deletedAt", -1))
+    serialized = serialize_list(trashed)
+    decrypted = prepare_notes_for_response(serialized)
+    return jsonify(decrypted)
 
 
 @app.route("/api/trash/<trash_id>/restore", methods=["POST"])
 def restore_from_trash(trash_id):
-    """Restore a note from trash back to notes."""
-    trashed = trash_col.find_one({"_id": ObjectId(trash_id)})
+    """Restore a note from trash back to notes (encryption preserved)."""
+    user_id = get_current_user_id()
+    query = {"_id": ObjectId(trash_id)}
+    if user_id:
+        query["userId"] = user_id
+    trashed = trash_col.find_one(query)
     if not trashed:
         return jsonify({"error": "Trashed note not found"}), 404
 
     now = datetime.utcnow().isoformat() + "Z"
-    restored = {
-        "name": trashed["name"],
-        "text": trashed.get("text", ""),
-        "content": trashed.get("content", ""),
-        "folder": trashed.get("folder", "General"),
-        "color": trashed.get("color", ""),
-        "reminder": trashed.get("reminder"),
-        "pinned": trashed.get("pinned", False),
-        "tags": trashed.get("tags", []),
-        "linkedNotes": trashed.get("linkedNotes", []),
-        "createdAt": trashed.get("createdAt", now),
-        "updatedAt": now,
-    }
+    # Copy the entire document (including encrypted fields) to notes
+    restored = {k: v for k, v in trashed.items() if k not in ("_id", "deletedAt", "originalId")}
+    restored["updatedAt"] = now
     notes_col.insert_one(restored)
     trash_col.delete_one({"_id": ObjectId(trash_id)})
     return jsonify({"message": "Note restored"})
@@ -283,7 +366,11 @@ def restore_from_trash(trash_id):
 @app.route("/api/trash/<trash_id>", methods=["DELETE"])
 def permanent_delete(trash_id):
     """Permanently delete a note from trash."""
-    result = trash_col.delete_one({"_id": ObjectId(trash_id)})
+    user_id = get_current_user_id()
+    query = {"_id": ObjectId(trash_id)}
+    if user_id:
+        query["userId"] = user_id
+    result = trash_col.delete_one(query)
     if result.deleted_count == 0:
         return jsonify({"error": "Trashed note not found"}), 404
     return jsonify({"message": "Note permanently deleted"})
@@ -291,8 +378,10 @@ def permanent_delete(trash_id):
 
 @app.route("/api/trash/empty", methods=["DELETE"])
 def empty_trash():
-    """Empty all trash."""
-    result = trash_col.delete_many({})
+    """Empty all trash for the current user."""
+    user_id = get_current_user_id()
+    query = {"userId": user_id} if user_id else {}
+    result = trash_col.delete_many(query)
     return jsonify({"message": f"Deleted {result.deleted_count} notes from trash"})
 
 
@@ -479,33 +568,103 @@ def get_dashboard():
 
 @app.route("/api/search", methods=["GET"])
 def search_notes():
-    """Search notes by query string across name, text, tags, and folder."""
+    """Search notes by metadata (name, tags, folder). Text field is encrypted."""
     q = request.args.get("q", "").strip()
     if not q:
         return jsonify([])
 
+    user_id = get_current_user_id()
+    # Only search unencrypted metadata fields
     query = {
         "$or": [
             {"name": {"$regex": q, "$options": "i"}},
-            {"text": {"$regex": q, "$options": "i"}},
             {"tags": {"$regex": q, "$options": "i"}},
             {"folder": {"$regex": q, "$options": "i"}},
         ]
     }
+    if user_id:
+        query = {"$and": [{"userId": user_id}, query]}
     results = list(notes_col.find(query).limit(20))
-    return jsonify(serialize_list(results))
+    serialized = serialize_list(results)
+    decrypted = prepare_notes_for_response(serialized)
+    return jsonify(decrypted)
+
+
+@app.route("/api/search/semantic", methods=["POST"])
+def semantic_search_notes():
+    """
+    Semantic search over encrypted notes using embedding similarity.
+
+    The search query is embedded, then compared against all note embeddings
+    using cosine similarity. Only the top-K results are decrypted.
+
+    Request body: { "query": "search text", "top_k": 10 }
+    Returns: [ { _id, name, text (snippet), score, folder, tags }, ... ]
+    """
+    data = request.json or {}
+    query_text = data.get("query", "").strip()
+    top_k = min(data.get("top_k", 10), 50)  # Cap at 50
+
+    if not query_text:
+        return jsonify([])
+
+    user_id = get_current_user_id()
+
+    # Step 1: Generate embedding for the search query
+    query_embedding = generate_embedding(query_text)
+    if query_embedding is None:
+        return jsonify({"error": "Embedding generation failed"}), 500
+
+    # Step 2: Fetch all note embeddings for this user (lightweight: only _id, name, embedding, metadata)
+    projection = {
+        "_id": 1, "name": 1, "embedding": 1, "folder": 1, "tags": 1,
+        "encrypted_text": 1, "encryption_nonce_text": 1,
+        "encrypted_content": 1, "encryption_nonce_content": 1,
+        "encryption_version": 1, "updatedAt": 1,
+        # Legacy support
+        "text": 1, "content": 1
+    }
+    db_query = {"userId": user_id} if user_id else {}
+    all_notes = list(notes_col.find(db_query, projection))
+    serialized = serialize_list(all_notes)
+
+    # Step 3: Rank by semantic similarity
+    ranked = semantic_search(query_embedding, serialized, top_k=top_k)
+
+    # Step 4: Decrypt only the top results
+    results = []
+    for note_result in ranked:
+        decrypted = prepare_note_for_response(note_result)
+        # Return a snippet, not the full text
+        text = decrypted.get("text", "")
+        snippet = text[:200] + "..." if len(text) > 200 else text
+        results.append({
+            "_id": decrypted.get("_id"),
+            "name": decrypted.get("name", "Untitled"),
+            "text": snippet,
+            "score": note_result.get("score", 0),
+            "folder": decrypted.get("folder", "General"),
+            "tags": decrypted.get("tags", []),
+            "updatedAt": decrypted.get("updatedAt", ""),
+        })
+
+    return jsonify(results)
+
 
 
 # ── EXPORT ALL NOTES ──
 
 @app.route("/api/export", methods=["GET"])
 def export_all():
-    """Export all notes, folders, and tags as JSON."""
-    notes = serialize_list(notes_col.find())
+    """Export all notes (decrypted), folders, and tags as JSON."""
+    user_id = get_current_user_id()
+    query = {"userId": user_id} if user_id else {}
+    raw_notes = serialize_list(notes_col.find(query))
+    decrypted_notes = prepare_notes_for_response(raw_notes)
     folders = serialize_list(folders_col.find())
     tags = [doc["name"] for doc in tags_col.find()]
     return jsonify({
-        "notes": notes,
+        "notes": decrypted_notes,
         "folders": folders,
         "tags": tags,
         "exportedAt": datetime.utcnow().isoformat() + "Z",
@@ -881,6 +1040,6 @@ if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", 5000))
     debug = os.getenv("DEBUG", "True").lower() == "true" and ENV_MODE != "production"
-    print(f"\n✦ AirScribe Backend running at http://localhost:{port}")
-    print(f"  Database: {DB_NAME} @ {MONGO_URI}\n")
-    app.run(host=host, port=port, debug=debug)
+    print(f"\n* AirScribe Backend running at http://localhost:{port}")
+    print(f"  Database: {DB_NAME} (connected)\n")
+    app.run(host=host, port=port, debug=debug, use_reloader=False)
