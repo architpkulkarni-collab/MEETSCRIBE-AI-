@@ -1,0 +1,49 @@
+{
+  "title": "Patent Proof Benchmark Report: Overlapping-Speech Attribution",
+  "owner": "Vedant (Member A)",
+  "timestamp": "2026-09-12 18:01:00",
+  "patent_target": "Multi-Modal Temporal Clash Detection & Probabilistic Voice Fingerprint Decomposition",
+  "metrics": {
+    "dataset_name": "MeetScribe-DualSpeaker-Collision-Harness",
+    "audio_duration_sec": 8.0,
+    "ground_truth_clashes": 1,
+    "detected_clashes": 1,
+    "clash_detection_precision": 1.0,
+    "clash_detection_recall": 1.0,
+    "clash_detection_f1": 1.0,
+    "baseline_attribution_error": 0.5,
+    "proposed_attribution_error": 0.08,
+    "word_attribution_error_reduction_pct": 84.0,
+    "total_processing_time_sec": 0.1824,
+    "real_time_factor": 0.0228
+  },
+  "collision_summary": {
+    "total_audio_duration": 8.0,
+    "total_overlap_duration": 2.0,
+    "overlap_percentage": 25.0,
+    "total_collisions": 1,
+    "clashing_speaker_pairs": [
+      ["SPEAKER_00", "SPEAKER_01"]
+    ],
+    "num_clean_segments": 3,
+    "num_overlap_segments": 1,
+    "overlap_segments": [
+      {
+        "start": 2.5,
+        "end": 4.5,
+        "duration": 2.0,
+        "speakers": ["SPEAKER_00", "SPEAKER_01"],
+        "confidence_level": "high"
+      }
+    ]
+  },
+  "attribution_report": {
+    "total_audio_duration": 8.0,
+    "total_collisions": 1,
+    "total_words_in_overlap": 4,
+    "speaker_dominance_summary": {
+      "SPEAKER_00": 0.684,
+      "SPEAKER_01": 0.316
+    }
+  }
+}
