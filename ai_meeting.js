@@ -32,6 +32,12 @@ const AIMeeting = (() => {
     let pendingChunks = 0;
     let enrolledProfileNames = []; // Names of enrolled voice profiles
 
+    // ── Feature #3: Timeline Fusion State ──
+    let timelineEnabled = false;
+    let timelinePollTimer = null;
+    const TIMELINE_POLL_MS = 5000; // Poll timeline every 5 seconds
+    let lastTimelineEventCount = 0;
+
     // ── AI Server Health Check ──
     async function checkAIServer() {
         try {
@@ -128,6 +134,10 @@ const AIMeeting = (() => {
         updateAIStatus('🎙️ AI Listening...', 'listening');
         showAIToast('AI Meeting transcription started', 'info');
         console.log(`AI Meeting started — session: ${sessionId}`);
+
+        // Feature #3: Start timeline polling
+        startTimelinePolling();
+
         return true;
     }
 
@@ -223,6 +233,126 @@ const AIMeeting = (() => {
         if (typeof setSaveStatus === 'function') setSaveStatus('Unsaved...');
     }
 
+    // ══════════════════════════════════════════════════
+    //  FEATURE #3: TIMELINE FUSION API
+    // ══════════════════════════════════════════════════
+
+    /**
+     * Add a typed note to the meeting timeline.
+     * @param {string} content - The note text.
+     * @param {number} [timestamp] - Epoch ms. Defaults to now.
+     */
+    async function addTimelineNote(content, timestamp) {
+        if (!sessionId || !timelineEnabled) return null;
+        try {
+            const res = await fetch(`${AI_API}/ai/session/${sessionId}/timeline/note`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content,
+                    timestamp: timestamp || Date.now()
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                console.log('[Timeline] Note added:', data.event?.id);
+                return data;
+            }
+        } catch (e) {
+            console.debug('[Timeline] Note add failed:', e.message);
+        }
+        return null;
+    }
+
+    /**
+     * Fetch the current unified timeline.
+     * @param {string} [type] - Filter by event type.
+     * @param {number} [since] - Only events after this epoch ms.
+     * @returns {object|null} Timeline data.
+     */
+    async function getTimeline(type, since) {
+        if (!sessionId) return null;
+        try {
+            let url = `${AI_API}/ai/session/${sessionId}/timeline`;
+            const params = new URLSearchParams();
+            if (type) params.set('type', type);
+            if (since) params.set('since', String(since));
+            if (params.toString()) url += '?' + params.toString();
+
+            const res = await fetch(url);
+            if (res.ok) return await res.json();
+        } catch (e) {
+            console.debug('[Timeline] Fetch failed:', e.message);
+        }
+        return null;
+    }
+
+    /**
+     * Add a screen capture + optional OCR to the timeline.
+     */
+    async function addScreenCapture(captureTimestamp, ocrText, ocrCompletionTimestamp) {
+        if (!sessionId || !timelineEnabled) return null;
+        try {
+            const body = { captureTimestamp };
+            if (ocrText) body.ocrText = ocrText;
+            if (ocrCompletionTimestamp) body.ocrCompletionTimestamp = ocrCompletionTimestamp;
+
+            const res = await fetch(`${AI_API}/ai/session/${sessionId}/timeline/screen`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                console.log('[Timeline] Screen capture added:', data.screenEvent?.id);
+                return data;
+            }
+        } catch (e) {
+            console.debug('[Timeline] Screen capture add failed:', e.message);
+        }
+        return null;
+    }
+
+    /**
+     * Start polling the timeline for updates.
+     */
+    function startTimelinePolling() {
+        if (timelinePollTimer) return;
+        timelineEnabled = true;
+        lastTimelineEventCount = 0;
+
+        timelinePollTimer = setInterval(async () => {
+            const data = await getTimeline();
+            if (data && data.counts) {
+                const total = data.counts.total || 0;
+                if (total > lastTimelineEventCount) {
+                    lastTimelineEventCount = total;
+                    updateTimelineIndicator(data.counts);
+                }
+            }
+        }, TIMELINE_POLL_MS);
+    }
+
+    function stopTimelinePolling() {
+        if (timelinePollTimer) {
+            clearInterval(timelinePollTimer);
+            timelinePollTimer = null;
+        }
+        timelineEnabled = false;
+    }
+
+    function updateTimelineIndicator(counts) {
+        const el = document.getElementById('aiTimelineCounts');
+        if (!el) return;
+        const parts = [];
+        if (counts.transcript) parts.push(`🎙️ ${counts.transcript}`);
+        if (counts.note) parts.push(`📝 ${counts.note}`);
+        if (counts.screen) parts.push(`📸 ${counts.screen}`);
+        if (counts.ocr) parts.push(`🔍 ${counts.ocr}`);
+        el.textContent = parts.join(' · ') || 'No events';
+        el.title = `Timeline: ${counts.total || 0} total events`;
+    }
+
     // ── Stop AI Meeting ──
     async function stop() {
         if (!isActive) return;
@@ -230,6 +360,7 @@ const AIMeeting = (() => {
 
         clearInterval(chunkTimer);
         chunkTimer = null;
+        stopTimelinePolling();
 
         // Send remaining audio
         if (audioChunks.length > 0) await sendCurrentChunk();
@@ -361,6 +492,7 @@ const AIMeeting = (() => {
                 <div id="aiMeetingStatus" class="ai-meeting-status">Ready</div>
             </div>
             <div id="aiSpeakerList" class="ai-speaker-list"></div>
+            <div id="aiTimelineCounts" class="ai-timeline-counts" style="font-size:11px;color:var(--text-2, #888);padding:4px 8px;text-align:center;"></div>
             <div class="ai-meeting-actions">
                 <button class="ai-btn-stop" id="aiStopBtn" onclick="AIMeeting.stop()">
                     <i class="fa fa-stop"></i> Stop AI
@@ -400,7 +532,12 @@ const AIMeeting = (() => {
         checkServer: checkAIServer,
         getSessionId: () => sessionId,
         getSpeakers: () => ({ ...speakerNames }),
-        getManualNames: () => ({ ...manualNames })
+        getManualNames: () => ({ ...manualNames }),
+        // Feature #3: Timeline Fusion API
+        addTimelineNote,
+        getTimeline,
+        addScreenCapture,
+        isTimelineEnabled: () => timelineEnabled,
     };
 })();
 

@@ -24,6 +24,18 @@ import threading
 from datetime import datetime
 from collections import defaultdict
 
+# ── Feature #3: Multi-Modal Timeline Fusion ──
+try:
+    from timeline_fusion import (
+        MeetingTimeline, create_event,
+        WhisperTimestampNormalizer,
+        correct_ocr_timestamp, correct_whisper_chunk_timestamp,
+    )
+    TIMELINE_AVAILABLE = True
+except ImportError:
+    TIMELINE_AVAILABLE = False
+    print("\u26a0\ufe0f  timeline_fusion not available \u2014 timeline features disabled")
+
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -136,6 +148,13 @@ class MeetingSession:
 
         # Voice recognition: enrolled profiles for this session
         self.enrolled_profiles = []
+
+        # ── Feature #3: Multi-Modal Timeline ──
+        self.meeting_start_ms = time.time() * 1000
+        if TIMELINE_AVAILABLE:
+            self.timeline = MeetingTimeline(meeting_start_ms=self.meeting_start_ms)
+        else:
+            self.timeline = None
 
     def get_or_assign_speaker_index(self, diarization_label):
         """
@@ -557,6 +576,48 @@ def transcribe_chunk():
         for seg in merged:
             seg["chunkIndex"] = chunk_index
 
+        # ── Feature #3: Add transcript events to timeline ──
+        if TIMELINE_AVAILABLE and session.timeline:
+            normalizer = session.timeline.normalizer
+            # Estimate chunk duration from segments or default to CHUNK_INTERVAL
+            if merged:
+                chunk_duration = max(s.get("end", 8.0) for s in merged)
+            else:
+                chunk_duration = 8.0
+            normalizer.register_chunk(chunk_index, chunk_duration)
+
+            for seg in merged:
+                chunk_rel_start = seg.get("start", 0.0)
+                abs_ts = normalizer.normalize(chunk_index, chunk_rel_start)
+                event = create_event(
+                    event_type="transcript",
+                    source="whisper",
+                    content=seg.get("text", ""),
+                    timestamp=abs_ts,
+                    metadata={
+                        "speaker": seg.get("speaker", "Unknown"),
+                        "speakerIndex": seg.get("speakerIndex", 0),
+                        "chunkIndex": chunk_index,
+                        "start": seg.get("start", 0.0),
+                        "end": seg.get("end", 0.0),
+                        "confidence": seg.get("confidence", 0.0),
+                    },
+                )
+                # Apply correction metadata
+                correction = correct_whisper_chunk_timestamp(
+                    raw_chunk_relative_ms=chunk_rel_start * 1000,
+                    normalized_meeting_ms=abs_ts,
+                    chunk_index=chunk_index,
+                )
+                if correction:
+                    event.raw_timestamp = correction.get("raw_timestamp", event.raw_timestamp)
+                    event.corrected_timestamp = correction.get("corrected_timestamp")
+                    event.timestamp_correction = correction.get("timestamp_correction", 0.0)
+                    event.correction_reason = correction.get("correction_reason")
+                    event.correction_confidence = correction.get("correction_confidence")
+
+                session.timeline.add_event(event)
+
         return jsonify({
             "segments": merged,
             "session": session.to_dict(),
@@ -614,6 +675,168 @@ def stop_session(session_id):
             "transcript": session.transcript,
             "session": session.to_dict()
         })
+
+
+# ══════════════════════════════════════════════════════
+#  FEATURE #3: MULTI-MODAL TIMELINE ENDPOINTS
+# ══════════════════════════════════════════════════════
+
+@app.route("/ai/session/<session_id>/timeline", methods=["GET"])
+def get_timeline(session_id):
+    """Get the unified chronological timeline for a session."""
+    if not TIMELINE_AVAILABLE:
+        return jsonify({"error": "Timeline feature not available"}), 501
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session = sessions[session_id]
+
+    if not session.timeline:
+        return jsonify({"error": "Timeline not initialized"}), 500
+
+    event_type = request.args.get("type")
+    since = request.args.get("since", type=float)
+    limit = request.args.get("limit", type=int)
+
+    events = session.timeline.get_events(event_type=event_type, since_ms=since, limit=limit)
+    return jsonify({
+        "events": [e.to_dict() for e in events],
+        "counts": session.timeline.get_event_count(),
+        "meetingStartMs": session.meeting_start_ms,
+    })
+
+
+@app.route("/ai/session/<session_id>/timeline/note", methods=["POST"])
+def add_timeline_note(session_id):
+    """
+    Add a typed note event to the meeting timeline.
+
+    Request body: { "content": "...", "timestamp": <epoch_ms> (optional) }
+    """
+    if not TIMELINE_AVAILABLE:
+        return jsonify({"error": "Timeline feature not available"}), 501
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session = sessions[session_id]
+
+    if not session.timeline:
+        return jsonify({"error": "Timeline not initialized"}), 500
+
+    data = request.json or {}
+    content = data.get("content", "").strip()
+    if not content:
+        return jsonify({"error": "No content provided"}), 400
+
+    ts = data.get("timestamp", time.time() * 1000)
+
+    event = create_event(
+        event_type="note",
+        source="user",
+        content=content,
+        timestamp=ts,
+    )
+    session.timeline.add_event(event)
+
+    return jsonify({"success": True, "event": event.to_dict()}), 201
+
+
+@app.route("/ai/session/<session_id>/timeline/screen", methods=["POST"])
+def add_timeline_screen(session_id):
+    """
+    Add a screen capture + OCR event to the meeting timeline.
+
+    Request body:
+    {
+        "captureTimestamp": <epoch_ms>,     // REQUIRED: when screenshot was taken
+        "ocrText": "...",                   // optional: extracted text
+        "ocrCompletionTimestamp": <epoch_ms> // optional: when OCR finished
+    }
+
+    The captureTimestamp is authoritative for timeline positioning.
+    """
+    if not TIMELINE_AVAILABLE:
+        return jsonify({"error": "Timeline feature not available"}), 501
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session = sessions[session_id]
+
+    if not session.timeline:
+        return jsonify({"error": "Timeline not initialized"}), 500
+
+    data = request.json or {}
+    capture_ts = data.get("captureTimestamp")
+    if not capture_ts:
+        return jsonify({"error": "captureTimestamp is required"}), 400
+
+    ocr_text = data.get("ocrText", "")
+    ocr_done_ts = data.get("ocrCompletionTimestamp")
+
+    # Add screen capture event at capture time
+    screen_event = create_event(
+        event_type="screen",
+        source="screen_capture",
+        content="[Screen Capture]",
+        timestamp=capture_ts,
+    )
+    session.timeline.add_event(screen_event)
+
+    result = {"success": True, "screenEvent": screen_event.to_dict()}
+
+    # Add OCR event with timestamp correction if OCR text provided
+    if ocr_text:
+        if ocr_done_ts and ocr_done_ts != capture_ts:
+            correction = correct_ocr_timestamp(capture_ts, ocr_done_ts)
+            ocr_event = create_event(
+                event_type="ocr",
+                source="ocr_engine",
+                content=ocr_text,
+                timestamp=correction["timestamp"],
+                metadata={"processing_delay_ms": ocr_done_ts - capture_ts},
+            )
+            ocr_event.raw_timestamp = correction["raw_timestamp"]
+            ocr_event.corrected_timestamp = correction.get("corrected_timestamp")
+            ocr_event.timestamp_correction = correction["timestamp_correction"]
+            ocr_event.correction_reason = correction.get("correction_reason")
+            ocr_event.correction_confidence = correction.get("correction_confidence")
+        else:
+            ocr_event = create_event(
+                event_type="ocr",
+                source="ocr_engine",
+                content=ocr_text,
+                timestamp=capture_ts,
+            )
+        session.timeline.add_event(ocr_event)
+        result["ocrEvent"] = ocr_event.to_dict()
+
+    return jsonify(result), 201
+
+
+@app.route("/ai/session/<session_id>/timeline/export", methods=["GET"])
+def export_timeline(session_id):
+    """Export the full timeline as JSON."""
+    if not TIMELINE_AVAILABLE:
+        return jsonify({"error": "Timeline feature not available"}), 501
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session = sessions[session_id]
+
+    if not session.timeline:
+        return jsonify({"error": "Timeline not initialized"}), 500
+
+    return jsonify({
+        "sessionId": session_id,
+        "meetingStartMs": session.meeting_start_ms,
+        "events": session.timeline.to_list(),
+        "counts": session.timeline.get_event_count(),
+        "exportedAt": datetime.utcnow().isoformat() + "Z",
+    })
 
 
 # ── Audio Conversion Helper ──

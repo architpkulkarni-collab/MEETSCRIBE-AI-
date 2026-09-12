@@ -5413,6 +5413,11 @@
                 if (backendAvailable) {
                     streamToBackend(text);
                 }
+
+                // Feature #3: Send note event to timeline fusion
+                if (typeof AIMeeting !== 'undefined' && AIMeeting.isTimelineEnabled && AIMeeting.isTimelineEnabled()) {
+                    AIMeeting.addTimelineNote(text.trim(), Date.now());
+                }
             }
 
             // ADDED: Backend streaming integration
