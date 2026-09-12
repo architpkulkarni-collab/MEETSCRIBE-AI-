@@ -2,11 +2,11 @@
  * AirScribe AI Meeting Module
  * ============================
  * Frontend integration for AI-powered multi-speaker transcription.
- * 
+ *
  * This module works ALONGSIDE the existing MeetingRecorder.
  * It uses MediaRecorder API to capture audio chunks and sends them
  * to the AI backend (port 5001) for Whisper transcription + diarization.
- * 
+ *
  * IMPORTANT: Does NOT modify or replace any existing functionality.
  * Manual speaker naming is fully preserved.
  */
@@ -31,6 +31,28 @@ const AIMeeting = (() => {
     let aiAvailable = false;
     let pendingChunks = 0;
     let enrolledProfileNames = []; // Names of enrolled voice profiles
+    let timelineReadyPromise = null;
+
+    function ensureTimelineFusion() {
+        if (window.TimelineFusion) return Promise.resolve(window.TimelineFusion);
+        if (timelineReadyPromise) return timelineReadyPromise;
+
+        timelineReadyPromise = new Promise((resolve, reject) => {
+            const existing = document.querySelector('script[data-timeline-fusion]');
+            if (existing) {
+                existing.addEventListener('load', () => resolve(window.TimelineFusion));
+                existing.addEventListener('error', reject);
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'timeline_fusion.js';
+            script.dataset.timelineFusion = 'true';
+            script.onload = () => resolve(window.TimelineFusion);
+            script.onerror = () => reject(new Error('Timeline Fusion module could not be loaded'));
+            document.head.appendChild(script);
+        });
+        return timelineReadyPromise;
+    }
 
     // ── Feature #3: Timeline Fusion State ──
     let timelineEnabled = false;
@@ -61,6 +83,8 @@ const AIMeeting = (() => {
     // ── Start AI Meeting Session ──
     async function start(names = ['Speaker 1', 'Speaker 2']) {
         if (isActive) { console.warn('AI Meeting already active'); return false; }
+
+        try { await ensureTimelineFusion(); } catch (e) { console.warn('[TimelineFusion] Optional module unavailable:', e); }
 
         // Check AI server
         const serverOk = await checkAIServer();
@@ -104,6 +128,12 @@ const AIMeeting = (() => {
             showAIToast('Failed to create AI session: ' + e.message, 'error');
             if (audioStream) { audioStream.getTracks().forEach(t => t.stop()); audioStream = null; }
             return false;
+        }
+
+        // Reset one shared timeline for this meeting.
+        if (window.TimelineFusion) {
+            window.TimelineFusion.init(sessionId);
+            if (window.quill) window.TimelineFusion.attachQuill(window.quill);
         }
 
         // Fetch enrolled voice profiles (for speaker recognition)
@@ -151,6 +181,7 @@ const AIMeeting = (() => {
         if (blob.size < 1000) return; // Skip tiny chunks (silence)
 
         const currentChunk = chunkIndex++;
+        const chunkStartSeconds = currentChunk * (CHUNK_INTERVAL_MS / 1000);
         pendingChunks++;
         updateAIStatus('⏳ Processing...', 'processing');
 
@@ -164,6 +195,13 @@ const AIMeeting = (() => {
             const data = await res.json();
 
             if (data.segments && data.segments.length > 0) {
+                // Whisper timestamps are relative to each 8-second chunk. Feed
+                // the chunk origin into the unified meeting timeline so events
+                // do not reset to 0s on every transcription request.
+                if (window.TimelineFusion) {
+                    data.segments.forEach(seg => window.TimelineFusion.addTranscript(seg, chunkStartSeconds));
+                }
+
                 insertAISegments(data.segments);
 
                 // Update speaker info from backend
@@ -381,6 +419,7 @@ const AIMeeting = (() => {
             } catch (e) { /* ignore */ }
         }
 
+        if (window.TimelineFusion) window.TimelineFusion.show(true);
         updateAIStatus('Stopped', 'stopped');
         setTimeout(() => showAIPanel(false), 3000);
         showAIToast('AI transcription stopped', 'success');
@@ -478,6 +517,17 @@ const AIMeeting = (() => {
     }
 
     // ── Inject the AI Meeting UI Panel ──
+    function showTimelineButton() {
+        if (document.getElementById('timelineFusionOpenBtn')) return;
+        const btn = document.createElement('button');
+        btn.id = 'timelineFusionOpenBtn';
+        btn.className = 'btn-secondary';
+        btn.style.cssText = 'position:fixed;right:24px;bottom:calc(55vh + 34px);z-index:9051;font-size:12px;padding:8px 12px;display:none;';
+        btn.textContent = 'Timeline';
+        btn.addEventListener('click', () => window.TimelineFusion?.show(true));
+        document.body.appendChild(btn);
+    }
+
     function injectUI() {
         if (document.getElementById('aiMeetingPanel')) return;
 
@@ -500,6 +550,7 @@ const AIMeeting = (() => {
             </div>
         `;
         document.body.appendChild(panel);
+        showTimelineButton();
     }
 
     // ── Inject CSS ──
@@ -516,6 +567,7 @@ const AIMeeting = (() => {
     function init() {
         injectStyles();
         injectUI();
+        ensureTimelineFusion().catch(e => console.warn('[TimelineFusion] Disabled:', e));
         checkAIServer().then(ok => {
             if (ok) console.log('✅ AI Meeting module ready');
             else console.log('ℹ️ AI Meeting server not running — AI features disabled');
@@ -538,6 +590,9 @@ const AIMeeting = (() => {
         getTimeline,
         addScreenCapture,
         isTimelineEnabled: () => timelineEnabled,
+        getClientTimeline: () => window.TimelineFusion ? window.TimelineFusion.getTimeline() : null,
+        startScreenOCR: () => window.TimelineFusion ? window.TimelineFusion.startScreenCapture() : Promise.resolve(false),
+        stopScreenOCR: () => window.TimelineFusion?.stopScreenCapture()
     };
 })();
 
