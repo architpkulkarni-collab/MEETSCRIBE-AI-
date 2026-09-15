@@ -36,6 +36,18 @@ except ImportError:
     TIMELINE_AVAILABLE = False
     print("\u26a0\ufe0f  timeline_fusion not available \u2014 timeline features disabled")
 
+# ── Feature #7: Cross-Device Session Handoff ──
+try:
+    from session_handoff import (
+        handoff_manager, restore_session_from_snapshot,
+        DeviceRole, HandoffPhase,
+    )
+    HANDOFF_AVAILABLE = True
+except ImportError:
+    HANDOFF_AVAILABLE = False
+    handoff_manager = None
+    print("\u26a0\ufe0f  session_handoff not available \u2014 handoff features disabled")
+
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -837,6 +849,236 @@ def export_timeline(session_id):
         "counts": session.timeline.get_event_count(),
         "exportedAt": datetime.utcnow().isoformat() + "Z",
     })
+
+
+# ══════════════════════════════════════════════════════
+#  FEATURE #7: CROSS-DEVICE SESSION HANDOFF ENDPOINTS
+# ══════════════════════════════════════════════════════
+
+@app.route("/ai/handoff/pair", methods=["POST"])
+def handoff_create_pair():
+    """
+    Device A creates a pairing code for a session.
+    Request: { "sessionId": "...", "deviceId": "..." }
+    Returns: { "pair_code": "123456", "expires_at": ... }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    device_id = data.get("deviceId", "")
+
+    if not session_id or not device_id:
+        return jsonify({"error": "sessionId and deviceId required"}), 400
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+
+    result = handoff_manager.create_pair_code(session_id, device_id)
+    if "error" in result:
+        return jsonify(result), 409
+    return jsonify(result), 201
+
+
+@app.route("/ai/handoff/join", methods=["POST"])
+def handoff_join():
+    """
+    Device B joins using a pair code.
+    Request: { "pairCode": "123456", "deviceId": "..." }
+    Returns: { "session_id": "...", "handoff_token": "..." }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    pair_code = data.get("pairCode", "")
+    device_id = data.get("deviceId", "")
+
+    if not pair_code or not device_id:
+        return jsonify({"error": "pairCode and deviceId required"}), 400
+
+    result = handoff_manager.join_with_code(pair_code, device_id)
+    if "error" in result:
+        return jsonify(result), 404
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/initiate", methods=["POST"])
+def handoff_initiate():
+    """
+    Device A initiates handoff — freezes session and creates snapshot.
+    Request: { "sessionId": "...", "deviceId": "..." }
+    Returns: { "snapshot": { ... } }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    device_id = data.get("deviceId", "")
+
+    if not session_id or not device_id:
+        return jsonify({"error": "sessionId and deviceId required"}), 400
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session_obj = sessions[session_id]
+
+    result = handoff_manager.initiate_handoff(session_id, device_id, session_obj)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/snapshot", methods=["POST"])
+def handoff_get_snapshot():
+    """
+    Device B retrieves the session snapshot.
+    Request: { "sessionId": "...", "handoffToken": "..." }
+    Returns: { "snapshot": { ... } }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    token = data.get("handoffToken", "")
+
+    if not session_id or not token:
+        return jsonify({"error": "sessionId and handoffToken required"}), 400
+
+    result = handoff_manager.get_snapshot(session_id, token)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/acknowledge", methods=["POST"])
+def handoff_acknowledge():
+    """
+    Device B acknowledges receipt of the snapshot.
+    Request: { "sessionId": "...", "handoffToken": "...",
+               "deviceId": "...", "checksum": "..." }
+    Returns: { "success": true }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    token = data.get("handoffToken", "")
+    device_id = data.get("deviceId", "")
+    checksum = data.get("checksum", "")
+
+    if not all([session_id, token, device_id, checksum]):
+        return jsonify({"error": "All fields required"}), 400
+
+    result = handoff_manager.acknowledge_handoff(session_id, token, device_id, checksum)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/commit", methods=["POST"])
+def handoff_commit():
+    """
+    Device A commits the handoff — Device B becomes active.
+    Replaces the in-memory session with the restored snapshot so
+    Device B can continue recording.
+    Request: { "sessionId": "...", "deviceId": "..." }
+    Returns: { "success": true, "handoff_epoch": ..., "handoff_duration_ms": ... }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    device_id = data.get("deviceId", "")
+
+    if not session_id or not device_id:
+        return jsonify({"error": "sessionId and deviceId required"}), 400
+
+    result = handoff_manager.commit_handoff(session_id, device_id, None)
+    if "error" in result:
+        return jsonify(result), 400
+
+    # The in-memory session is still valid — Device B will use the same
+    # session_id for subsequent /ai/transcribe calls.  The snapshot was
+    # a read-only copy; the live session object doesn't need replacing.
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/restore", methods=["POST"])
+def handoff_restore():
+    """
+    Device B restores a session from a snapshot and registers it
+    server-side so it can continue recording.
+    Request: { "snapshot": { ... }, "deviceId": "..." }
+    Returns: { "success": true, "session": { ... } }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    snapshot_dict = data.get("snapshot")
+    device_id = data.get("deviceId", "")
+
+    if not snapshot_dict or not device_id:
+        return jsonify({"error": "snapshot and deviceId required"}), 400
+
+    session_id = snapshot_dict.get("session_id", "")
+
+    # Verify this device is allowed to restore
+    state = handoff_manager.get_handoff_status(session_id)
+    if state.get("phase") != HandoffPhase.COMMITTED:
+        return jsonify({"error": "Handoff not committed — cannot restore"}), 400
+    if state.get("device_b_id") != device_id:
+        return jsonify({"error": "Not authorized to restore this session"}), 403
+
+    try:
+        restored = restore_session_from_snapshot(snapshot_dict, MeetingSession)
+        with sessions_lock:
+            sessions[session_id] = restored
+        return jsonify({
+            "success": True,
+            "session": restored.to_dict(),
+        })
+    except Exception as e:
+        return jsonify({"error": f"Restore failed: {e}"}), 500
+
+
+@app.route("/ai/handoff/status/<session_id>", methods=["GET"])
+def handoff_status(session_id):
+    """Get handoff status for a session."""
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+    return jsonify(handoff_manager.get_handoff_status(session_id))
+
+
+@app.route("/ai/handoff/abort", methods=["POST"])
+def handoff_abort():
+    """
+    Abort the current handoff. Device A remains active.
+    Request: { "sessionId": "...", "reason": "..." }
+    Returns: { "success": true }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    reason = data.get("reason", "Aborted by user")
+
+    if not session_id:
+        return jsonify({"error": "sessionId required"}), 400
+
+    result = handoff_manager.abort_handoff(session_id, reason)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
 
 
 # ── Audio Conversion Helper ──

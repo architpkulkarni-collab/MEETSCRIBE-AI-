@@ -547,6 +547,9 @@ const AIMeeting = (() => {
                 <button class="ai-btn-stop" id="aiStopBtn" onclick="AIMeeting.stop()">
                     <i class="fa fa-stop"></i> Stop AI
                 </button>
+                <button class="ai-btn-handoff" id="aiHandoffBtn" onclick="if(window.SessionHandoff)SessionHandoff.showPanel();" style="background:#a78bfa;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;margin-left:6px;">
+                    <i class="fa fa-exchange-alt"></i> Handoff
+                </button>
             </div>
         `;
         document.body.appendChild(panel);
