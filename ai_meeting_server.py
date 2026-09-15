@@ -24,6 +24,30 @@ import threading
 from datetime import datetime
 from collections import defaultdict
 
+# ── Feature #3: Multi-Modal Timeline Fusion ──
+try:
+    from timeline_fusion import (
+        MeetingTimeline, create_event,
+        WhisperTimestampNormalizer,
+        correct_ocr_timestamp, correct_whisper_chunk_timestamp,
+    )
+    TIMELINE_AVAILABLE = True
+except ImportError:
+    TIMELINE_AVAILABLE = False
+    print("\u26a0\ufe0f  timeline_fusion not available \u2014 timeline features disabled")
+
+# ── Feature #7: Cross-Device Session Handoff ──
+try:
+    from session_handoff import (
+        handoff_manager, restore_session_from_snapshot,
+        DeviceRole, HandoffPhase,
+    )
+    HANDOFF_AVAILABLE = True
+except ImportError:
+    HANDOFF_AVAILABLE = False
+    handoff_manager = None
+    print("\u26a0\ufe0f  session_handoff not available \u2014 handoff features disabled")
+
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -136,6 +160,13 @@ class MeetingSession:
 
         # Voice recognition: enrolled profiles for this session
         self.enrolled_profiles = []
+
+        # ── Feature #3: Multi-Modal Timeline ──
+        self.meeting_start_ms = time.time() * 1000
+        if TIMELINE_AVAILABLE:
+            self.timeline = MeetingTimeline(meeting_start_ms=self.meeting_start_ms)
+        else:
+            self.timeline = None
 
     def get_or_assign_speaker_index(self, diarization_label):
         """
@@ -557,6 +588,48 @@ def transcribe_chunk():
         for seg in merged:
             seg["chunkIndex"] = chunk_index
 
+        # ── Feature #3: Add transcript events to timeline ──
+        if TIMELINE_AVAILABLE and session.timeline:
+            normalizer = session.timeline.normalizer
+            # Estimate chunk duration from segments or default to CHUNK_INTERVAL
+            if merged:
+                chunk_duration = max(s.get("end", 8.0) for s in merged)
+            else:
+                chunk_duration = 8.0
+            normalizer.register_chunk(chunk_index, chunk_duration)
+
+            for seg in merged:
+                chunk_rel_start = seg.get("start", 0.0)
+                abs_ts = normalizer.normalize(chunk_index, chunk_rel_start)
+                event = create_event(
+                    event_type="transcript",
+                    source="whisper",
+                    content=seg.get("text", ""),
+                    timestamp=abs_ts,
+                    metadata={
+                        "speaker": seg.get("speaker", "Unknown"),
+                        "speakerIndex": seg.get("speakerIndex", 0),
+                        "chunkIndex": chunk_index,
+                        "start": seg.get("start", 0.0),
+                        "end": seg.get("end", 0.0),
+                        "confidence": seg.get("confidence", 0.0),
+                    },
+                )
+                # Apply correction metadata
+                correction = correct_whisper_chunk_timestamp(
+                    raw_chunk_relative_ms=chunk_rel_start * 1000,
+                    normalized_meeting_ms=abs_ts,
+                    chunk_index=chunk_index,
+                )
+                if correction:
+                    event.raw_timestamp = correction.get("raw_timestamp", event.raw_timestamp)
+                    event.corrected_timestamp = correction.get("corrected_timestamp")
+                    event.timestamp_correction = correction.get("timestamp_correction", 0.0)
+                    event.correction_reason = correction.get("correction_reason")
+                    event.correction_confidence = correction.get("correction_confidence")
+
+                session.timeline.add_event(event)
+
         return jsonify({
             "segments": merged,
             "session": session.to_dict(),
@@ -614,6 +687,398 @@ def stop_session(session_id):
             "transcript": session.transcript,
             "session": session.to_dict()
         })
+
+
+# ══════════════════════════════════════════════════════
+#  FEATURE #3: MULTI-MODAL TIMELINE ENDPOINTS
+# ══════════════════════════════════════════════════════
+
+@app.route("/ai/session/<session_id>/timeline", methods=["GET"])
+def get_timeline(session_id):
+    """Get the unified chronological timeline for a session."""
+    if not TIMELINE_AVAILABLE:
+        return jsonify({"error": "Timeline feature not available"}), 501
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session = sessions[session_id]
+
+    if not session.timeline:
+        return jsonify({"error": "Timeline not initialized"}), 500
+
+    event_type = request.args.get("type")
+    since = request.args.get("since", type=float)
+    limit = request.args.get("limit", type=int)
+
+    events = session.timeline.get_events(event_type=event_type, since_ms=since, limit=limit)
+    return jsonify({
+        "events": [e.to_dict() for e in events],
+        "counts": session.timeline.get_event_count(),
+        "meetingStartMs": session.meeting_start_ms,
+    })
+
+
+@app.route("/ai/session/<session_id>/timeline/note", methods=["POST"])
+def add_timeline_note(session_id):
+    """
+    Add a typed note event to the meeting timeline.
+
+    Request body: { "content": "...", "timestamp": <epoch_ms> (optional) }
+    """
+    if not TIMELINE_AVAILABLE:
+        return jsonify({"error": "Timeline feature not available"}), 501
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session = sessions[session_id]
+
+    if not session.timeline:
+        return jsonify({"error": "Timeline not initialized"}), 500
+
+    data = request.json or {}
+    content = data.get("content", "").strip()
+    if not content:
+        return jsonify({"error": "No content provided"}), 400
+
+    ts = data.get("timestamp", time.time() * 1000)
+
+    event = create_event(
+        event_type="note",
+        source="user",
+        content=content,
+        timestamp=ts,
+    )
+    session.timeline.add_event(event)
+
+    return jsonify({"success": True, "event": event.to_dict()}), 201
+
+
+@app.route("/ai/session/<session_id>/timeline/screen", methods=["POST"])
+def add_timeline_screen(session_id):
+    """
+    Add a screen capture + OCR event to the meeting timeline.
+
+    Request body:
+    {
+        "captureTimestamp": <epoch_ms>,     // REQUIRED: when screenshot was taken
+        "ocrText": "...",                   // optional: extracted text
+        "ocrCompletionTimestamp": <epoch_ms> // optional: when OCR finished
+    }
+
+    The captureTimestamp is authoritative for timeline positioning.
+    """
+    if not TIMELINE_AVAILABLE:
+        return jsonify({"error": "Timeline feature not available"}), 501
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session = sessions[session_id]
+
+    if not session.timeline:
+        return jsonify({"error": "Timeline not initialized"}), 500
+
+    data = request.json or {}
+    capture_ts = data.get("captureTimestamp")
+    if not capture_ts:
+        return jsonify({"error": "captureTimestamp is required"}), 400
+
+    ocr_text = data.get("ocrText", "")
+    ocr_done_ts = data.get("ocrCompletionTimestamp")
+
+    # Add screen capture event at capture time
+    screen_event = create_event(
+        event_type="screen",
+        source="screen_capture",
+        content="[Screen Capture]",
+        timestamp=capture_ts,
+    )
+    session.timeline.add_event(screen_event)
+
+    result = {"success": True, "screenEvent": screen_event.to_dict()}
+
+    # Add OCR event with timestamp correction if OCR text provided
+    if ocr_text:
+        if ocr_done_ts and ocr_done_ts != capture_ts:
+            correction = correct_ocr_timestamp(capture_ts, ocr_done_ts)
+            ocr_event = create_event(
+                event_type="ocr",
+                source="ocr_engine",
+                content=ocr_text,
+                timestamp=correction["timestamp"],
+                metadata={"processing_delay_ms": ocr_done_ts - capture_ts},
+            )
+            ocr_event.raw_timestamp = correction["raw_timestamp"]
+            ocr_event.corrected_timestamp = correction.get("corrected_timestamp")
+            ocr_event.timestamp_correction = correction["timestamp_correction"]
+            ocr_event.correction_reason = correction.get("correction_reason")
+            ocr_event.correction_confidence = correction.get("correction_confidence")
+        else:
+            ocr_event = create_event(
+                event_type="ocr",
+                source="ocr_engine",
+                content=ocr_text,
+                timestamp=capture_ts,
+            )
+        session.timeline.add_event(ocr_event)
+        result["ocrEvent"] = ocr_event.to_dict()
+
+    return jsonify(result), 201
+
+
+@app.route("/ai/session/<session_id>/timeline/export", methods=["GET"])
+def export_timeline(session_id):
+    """Export the full timeline as JSON."""
+    if not TIMELINE_AVAILABLE:
+        return jsonify({"error": "Timeline feature not available"}), 501
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session = sessions[session_id]
+
+    if not session.timeline:
+        return jsonify({"error": "Timeline not initialized"}), 500
+
+    return jsonify({
+        "sessionId": session_id,
+        "meetingStartMs": session.meeting_start_ms,
+        "events": session.timeline.to_list(),
+        "counts": session.timeline.get_event_count(),
+        "exportedAt": datetime.utcnow().isoformat() + "Z",
+    })
+
+
+# ══════════════════════════════════════════════════════
+#  FEATURE #7: CROSS-DEVICE SESSION HANDOFF ENDPOINTS
+# ══════════════════════════════════════════════════════
+
+@app.route("/ai/handoff/pair", methods=["POST"])
+def handoff_create_pair():
+    """
+    Device A creates a pairing code for a session.
+    Request: { "sessionId": "...", "deviceId": "..." }
+    Returns: { "pair_code": "123456", "expires_at": ... }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    device_id = data.get("deviceId", "")
+
+    if not session_id or not device_id:
+        return jsonify({"error": "sessionId and deviceId required"}), 400
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+
+    result = handoff_manager.create_pair_code(session_id, device_id)
+    if "error" in result:
+        return jsonify(result), 409
+    return jsonify(result), 201
+
+
+@app.route("/ai/handoff/join", methods=["POST"])
+def handoff_join():
+    """
+    Device B joins using a pair code.
+    Request: { "pairCode": "123456", "deviceId": "..." }
+    Returns: { "session_id": "...", "handoff_token": "..." }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    pair_code = data.get("pairCode", "")
+    device_id = data.get("deviceId", "")
+
+    if not pair_code or not device_id:
+        return jsonify({"error": "pairCode and deviceId required"}), 400
+
+    result = handoff_manager.join_with_code(pair_code, device_id)
+    if "error" in result:
+        return jsonify(result), 404
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/initiate", methods=["POST"])
+def handoff_initiate():
+    """
+    Device A initiates handoff — freezes session and creates snapshot.
+    Request: { "sessionId": "...", "deviceId": "..." }
+    Returns: { "snapshot": { ... } }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    device_id = data.get("deviceId", "")
+
+    if not session_id or not device_id:
+        return jsonify({"error": "sessionId and deviceId required"}), 400
+
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        session_obj = sessions[session_id]
+
+    result = handoff_manager.initiate_handoff(session_id, device_id, session_obj)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/snapshot", methods=["POST"])
+def handoff_get_snapshot():
+    """
+    Device B retrieves the session snapshot.
+    Request: { "sessionId": "...", "handoffToken": "..." }
+    Returns: { "snapshot": { ... } }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    token = data.get("handoffToken", "")
+
+    if not session_id or not token:
+        return jsonify({"error": "sessionId and handoffToken required"}), 400
+
+    result = handoff_manager.get_snapshot(session_id, token)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/acknowledge", methods=["POST"])
+def handoff_acknowledge():
+    """
+    Device B acknowledges receipt of the snapshot.
+    Request: { "sessionId": "...", "handoffToken": "...",
+               "deviceId": "...", "checksum": "..." }
+    Returns: { "success": true }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    token = data.get("handoffToken", "")
+    device_id = data.get("deviceId", "")
+    checksum = data.get("checksum", "")
+
+    if not all([session_id, token, device_id, checksum]):
+        return jsonify({"error": "All fields required"}), 400
+
+    result = handoff_manager.acknowledge_handoff(session_id, token, device_id, checksum)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/commit", methods=["POST"])
+def handoff_commit():
+    """
+    Device A commits the handoff — Device B becomes active.
+    Replaces the in-memory session with the restored snapshot so
+    Device B can continue recording.
+    Request: { "sessionId": "...", "deviceId": "..." }
+    Returns: { "success": true, "handoff_epoch": ..., "handoff_duration_ms": ... }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    device_id = data.get("deviceId", "")
+
+    if not session_id or not device_id:
+        return jsonify({"error": "sessionId and deviceId required"}), 400
+
+    result = handoff_manager.commit_handoff(session_id, device_id, None)
+    if "error" in result:
+        return jsonify(result), 400
+
+    # The in-memory session is still valid — Device B will use the same
+    # session_id for subsequent /ai/transcribe calls.  The snapshot was
+    # a read-only copy; the live session object doesn't need replacing.
+    return jsonify(result)
+
+
+@app.route("/ai/handoff/restore", methods=["POST"])
+def handoff_restore():
+    """
+    Device B restores a session from a snapshot and registers it
+    server-side so it can continue recording.
+    Request: { "snapshot": { ... }, "deviceId": "..." }
+    Returns: { "success": true, "session": { ... } }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    snapshot_dict = data.get("snapshot")
+    device_id = data.get("deviceId", "")
+
+    if not snapshot_dict or not device_id:
+        return jsonify({"error": "snapshot and deviceId required"}), 400
+
+    session_id = snapshot_dict.get("session_id", "")
+
+    # Verify this device is allowed to restore
+    state = handoff_manager.get_handoff_status(session_id)
+    if state.get("phase") != HandoffPhase.COMMITTED:
+        return jsonify({"error": "Handoff not committed — cannot restore"}), 400
+    if state.get("device_b_id") != device_id:
+        return jsonify({"error": "Not authorized to restore this session"}), 403
+
+    try:
+        restored = restore_session_from_snapshot(snapshot_dict, MeetingSession)
+        with sessions_lock:
+            sessions[session_id] = restored
+        return jsonify({
+            "success": True,
+            "session": restored.to_dict(),
+        })
+    except Exception as e:
+        return jsonify({"error": f"Restore failed: {e}"}), 500
+
+
+@app.route("/ai/handoff/status/<session_id>", methods=["GET"])
+def handoff_status(session_id):
+    """Get handoff status for a session."""
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+    return jsonify(handoff_manager.get_handoff_status(session_id))
+
+
+@app.route("/ai/handoff/abort", methods=["POST"])
+def handoff_abort():
+    """
+    Abort the current handoff. Device A remains active.
+    Request: { "sessionId": "...", "reason": "..." }
+    Returns: { "success": true }
+    """
+    if not HANDOFF_AVAILABLE:
+        return jsonify({"error": "Handoff feature not available"}), 501
+
+    data = request.json or {}
+    session_id = data.get("sessionId", "")
+    reason = data.get("reason", "Aborted by user")
+
+    if not session_id:
+        return jsonify({"error": "sessionId required"}), 400
+
+    result = handoff_manager.abort_handoff(session_id, reason)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
 
 
 # ── Audio Conversion Helper ──
