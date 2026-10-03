@@ -39,10 +39,14 @@ from voice_intelligence.overlap_detector import (  # type: ignore
 )
 
 from voice_intelligence.voice_fingerprint import (  # type: ignore
+    DEFAULT_PROFILES_FILE,
     VoiceFingerprint,
     SpeakerProfileRegistry,
     VoiceFingerprintEngine,
     get_fingerprint_engine,
+    get_saved_registry,
+    register_speaker_voice,
+    recognize_speaker_voice,
 )
 
 from voice_intelligence.attribution_engine import (  # type: ignore
@@ -65,4 +69,3 @@ from voice_intelligence.overlap_suite import (  # type: ignore
     OverlappingAttributionPipeline,
     get_pipeline,
 )
-

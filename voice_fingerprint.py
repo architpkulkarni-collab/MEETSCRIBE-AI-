@@ -16,22 +16,34 @@ for p in [_project_root, _current_dir]:
 
 try:
     from voice_intelligence.overlap_suite.voice_fingerprint import (
+        DEFAULT_PROFILES_FILE,
         VoiceFingerprint,
         SpeakerProfileRegistry,
         VoiceFingerprintEngine,
         get_fingerprint_engine,
+        get_saved_registry,
+        register_speaker_voice,
+        recognize_speaker_voice,
     )
 except ImportError:
     from overlap_suite.voice_fingerprint import (
+        DEFAULT_PROFILES_FILE,
         VoiceFingerprint,
         SpeakerProfileRegistry,
         VoiceFingerprintEngine,
         get_fingerprint_engine,
+        get_saved_registry,
+        register_speaker_voice,
+        recognize_speaker_voice,
     )
 
 __all__ = [
+    "DEFAULT_PROFILES_FILE",
     "VoiceFingerprint",
     "SpeakerProfileRegistry",
     "VoiceFingerprintEngine",
     "get_fingerprint_engine",
+    "get_saved_registry",
+    "register_speaker_voice",
+    "recognize_speaker_voice",
 ]

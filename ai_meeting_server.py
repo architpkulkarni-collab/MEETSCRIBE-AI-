@@ -9,6 +9,7 @@ Features:
   - Performs speaker diarization to detect multiple speakers
   - Maintains speaker consistency across audio chunks
   - Preserves manual speaker name assignments (never overrides them)
+  - Persistent voice registration and speaker recognition for Person 1, Person 2, etc.
 
 Runs on port 5001 to avoid conflict with the main AirScribe backend (port 5000).
 """
@@ -265,11 +266,10 @@ def transcribe_and_diarize(audio_path, session):
                 )
                 if results:
                     return results
-                # If pipeline returned empty, fall through to existing logic
             except ImportError:
                 pass  # ai_server not installed — use existing logic
             except Exception as e:
-                print(f"\u26a0\ufe0f  Enhanced pipeline error: {e} \u2014 falling back")
+                print(f"⚠️  Enhanced pipeline error: {e} — falling back")
 
         # Step 1: Transcribe with Whisper
         model = get_whisper_model()
@@ -284,7 +284,53 @@ def transcribe_and_diarize(audio_path, session):
         if not raw_segments:
             return results
 
-        # Step 2: Speaker diarization
+        # ── Step 1.5: Match against registered voice profiles from saved data ──
+        saved_reg = None
+        try:
+            from voice_intelligence.overlap_suite.voice_fingerprint import get_saved_registry
+            saved_reg = get_saved_registry()
+        except Exception:
+            pass
+
+        if saved_reg is not None and len(saved_reg) > 0:
+            logger_msg = f"Matching against {len(saved_reg)} saved voice profiles ({saved_reg.all_speakers()})"
+            print(f"ℹ️  {logger_msg}")
+            for seg in raw_segments:
+                seg_start = seg["start"]
+                seg_end = seg["end"]
+                seg_text = seg["text"].strip()
+                if not seg_text:
+                    continue
+
+                best_speaker, confidence, _ = saved_reg.recognize(
+                    audio_input=audio_path,
+                    start_sec=seg_start,
+                    end_sec=seg_end,
+                    threshold=0.38
+                )
+
+                if best_speaker != "UNKNOWN":
+                    speaker_idx = session.get_or_assign_speaker_index(best_speaker)
+                    if speaker_idx not in session.manual_names:
+                        session.auto_labels[speaker_idx] = best_speaker
+                    speaker_name = session.get_speaker_name(speaker_idx)
+                else:
+                    speaker_idx = session.get_or_assign_speaker_index("SPEAKER_00")
+                    speaker_name = session.get_speaker_name(speaker_idx)
+
+                results.append({
+                    "speaker": speaker_name,
+                    "speakerIndex": speaker_idx,
+                    "text": seg_text,
+                    "start": round(seg_start, 2),
+                    "end": round(seg_end, 2),
+                    "confidence": round(confidence, 3)
+                })
+
+            if results:
+                return results
+
+        # Step 2: Speaker diarization (if no saved profiles matched)
         pipeline = get_diarization_pipeline()
 
         if pipeline != "fallback" and pipeline is not None:
@@ -364,19 +410,18 @@ def transcribe_and_diarize(audio_path, session):
 
 def merge_consecutive_speakers(segments):
     """
-    Merge consecutive segments from the same speaker into single blocks.
-    Preserves message order and avoids mixing lines between speakers.
+    Merge consecutive segments that have the same speaker.
+    e.g., [Alice: "Hello", Alice: "world"] → [Alice: "Hello world"]
     """
     if not segments:
-        return segments
+        return []
 
     merged = [segments[0].copy()]
 
     for seg in segments[1:]:
         prev = merged[-1]
         if seg["speakerIndex"] == prev["speakerIndex"]:
-            # Same speaker — merge text
-            prev["text"] = prev["text"].rstrip() + " " + seg["text"].lstrip()
+            prev["text"] += " " + seg["text"]
             prev["end"] = seg["end"]
         else:
             merged.append(seg.copy())
@@ -448,58 +493,56 @@ def start_session():
     with sessions_lock:
         sessions[session_id] = session
 
-    print(f"* New meeting session: {session_id} ({speaker_count} speakers)")
     return jsonify(session.to_dict()), 201
-
-
-@app.route("/ai/session/<session_id>", methods=["GET"])
-def get_session_info(session_id):
-    """Get current session state including speaker mappings."""
-    with sessions_lock:
-        if session_id not in sessions:
-            return jsonify({"error": "Session not found"}), 404
-        return jsonify(sessions[session_id].to_dict())
 
 
 @app.route("/ai/session/<session_id>/rename-speaker", methods=["POST"])
 def rename_speaker(session_id):
     """
-    Manually rename a speaker (preserves existing manual naming feature).
+    Rename a speaker in an active session.
+    Preserves manual names so AI diarization never overwrites them.
 
     Request body:
     {
         "speakerIndex": 0,
         "name": "Alice"
     }
-
-    This will NEVER be overwritten by AI detection — manual names always win.
     """
+    data = request.json or {}
+    speaker_index = int(data.get("speakerIndex", 0))
+    name = data.get("name", "").strip()
+
     with sessions_lock:
         if session_id not in sessions:
             return jsonify({"error": "Session not found"}), 404
 
         session = sessions[session_id]
-        data = request.json or {}
-        idx = data.get("speakerIndex", 0)
-        name = data.get("name", "")
+        session.set_manual_name(speaker_index, name)
 
-        if name.strip():
-            session.set_manual_name(idx, name)
-            return jsonify({
-                "success": True,
-                "speakerIndex": idx,
-                "name": session.get_speaker_name(idx),
-                "isManual": True
-            })
-        else:
-            # Remove manual override → revert to auto label
-            session.manual_names.pop(idx, None)
-            return jsonify({
-                "success": True,
-                "speakerIndex": idx,
-                "name": session.get_speaker_name(idx),
-                "isManual": False
-            })
+        return jsonify({
+            "message": f"Speaker {speaker_index} renamed to '{name}'",
+            "speakers": session.to_dict()["speakers"]
+        })
+
+
+@app.route("/ai/session/<session_id>/speakers", methods=["GET"])
+def get_speakers(session_id):
+    """Get the current speaker mapping for a session."""
+    with sessions_lock:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+
+        session = sessions[session_id]
+        return jsonify({
+            "speakers": [
+                {
+                    "index": idx,
+                    "name": session.get_speaker_name(idx),
+                    "isManual": idx in session.manual_names
+                }
+                for idx in range(session.next_speaker_index)
+            ]
+        })
 
 
 @app.route("/ai/transcribe", methods=["POST"])
@@ -616,6 +659,150 @@ def stop_session(session_id):
         })
 
 
+# ══════════════════════════════════════════════════════
+#  SAVED VOICE PROFILES (PERSON 1 & PERSON 2 REGISTRATION)
+# ══════════════════════════════════════════════════════
+
+@app.route("/ai/voice/register", methods=["POST"])
+def register_voice_profile():
+    """
+    Register a person's voice (e.g. 'Person 1', 'Person 2') and save to persistent storage.
+    Accepts:
+        - audio: Audio file (wav, webm, ogg, mp3)
+        - speakerName / userName: Display name for the person (e.g. "Person 1", "Person 2")
+    """
+    if "audio" not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio_file = request.files["audio"]
+    speaker_name = (
+        request.form.get("speakerName") or
+        request.form.get("userName") or
+        request.form.get("name") or
+        "Person 1"
+    ).strip()
+
+    if not speaker_name:
+        return jsonify({"error": "speakerName is required"}), 400
+
+    ext = audio_file.filename.rsplit(".", 1)[-1] if "." in (audio_file.filename or "") else "webm"
+    temp_filename = f"reg_{speaker_name.replace(' ', '_')}_{int(time.time())}.{ext}"
+    temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
+    wav_path = None
+
+    try:
+        audio_file.save(temp_path)
+        wav_path = convert_to_wav(temp_path)
+
+        from voice_intelligence.overlap_suite.voice_fingerprint import get_saved_registry
+        reg = get_saved_registry()
+        fp = reg.register_speaker(speaker_name, wav_path, save=True)
+
+        # Also store to MongoDB if available
+        try:
+            from ai_server import embeddings
+            embeddings.store_embedding(
+                user_id=speaker_name.lower().replace(" ", "_"),
+                user_name=speaker_name,
+                embedding_vector=fp.vector,
+                sample_duration=fp.duration_sec
+            )
+        except Exception:
+            pass
+
+        return jsonify({
+            "success": True,
+            "speakerName": speaker_name,
+            "duration": round(fp.duration_sec, 2),
+            "dimension": fp.dimension,
+            "extractionMode": fp.extraction_mode,
+            "message": f"Voice registered successfully for '{speaker_name}' and saved to persistent data."
+        }), 201
+
+    except Exception as e:
+        print(f"❌ Error registering voice for {speaker_name}: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            if wav_path and wav_path != temp_path and os.path.exists(wav_path):
+                os.remove(wav_path)
+        except Exception:
+            pass
+
+
+@app.route("/ai/voice/saved-profiles", methods=["GET"])
+def list_saved_voice_profiles():
+    """List all registered voice profiles from saved data."""
+    try:
+        from voice_intelligence.overlap_suite.voice_fingerprint import get_saved_registry
+        reg = get_saved_registry()
+        profiles = []
+        for spk_id, fp in reg.all_profiles().items():
+            p_dict = fp.to_dict()
+            p_dict.pop("vector", None)  # Don't send huge raw vector array
+            profiles.append(p_dict)
+        return jsonify({
+            "count": len(profiles),
+            "profiles": profiles
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/ai/voice/recognize", methods=["POST"])
+def recognize_audio_voice():
+    """Identify which registered person is speaking in an audio file."""
+    if "audio" not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio_file = request.files["audio"]
+    ext = audio_file.filename.rsplit(".", 1)[-1] if "." in (audio_file.filename or "") else "webm"
+    temp_filename = f"rec_{int(time.time())}.{ext}"
+    temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
+    wav_path = None
+
+    try:
+        audio_file.save(temp_path)
+        wav_path = convert_to_wav(temp_path)
+
+        from voice_intelligence.overlap_suite.voice_fingerprint import get_saved_registry
+        reg = get_saved_registry()
+        best_spk, conf, all_scores = reg.recognize(wav_path, threshold=0.38)
+
+        return jsonify({
+            "speaker": best_spk,
+            "confidence": conf,
+            "scores": all_scores
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            if wav_path and wav_path != temp_path and os.path.exists(wav_path):
+                os.remove(wav_path)
+        except Exception:
+            pass
+
+
+@app.route("/ai/voice/saved-profile/<speaker_name>", methods=["DELETE"])
+def delete_saved_voice_profile(speaker_name):
+    """Delete a registered voice profile from saved data."""
+    try:
+        from voice_intelligence.overlap_suite.voice_fingerprint import get_saved_registry
+        reg = get_saved_registry()
+        deleted = reg.delete(speaker_name, save=True)
+        if deleted:
+            return jsonify({"success": True, "message": f"Profile '{speaker_name}' deleted."}), 200
+        else:
+            return jsonify({"error": f"Profile '{speaker_name}' not found."}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Audio Conversion Helper ──
 
 def convert_to_wav(input_path):
@@ -685,12 +872,9 @@ if __name__ == "__main__":
     has_enrollment = 'voice_enrollment' in [bp.name for bp in app.iter_blueprints()]
     print(f"    Voice enrollment: {'enabled' if has_enrollment else 'disabled'}")
     print(f"    Routes: /ai/health, /ai/session/*, /ai/transcribe")
+    print(f"            /ai/voice/register, /ai/voice/saved-profiles, /ai/voice/recognize")
     if has_enrollment:
         print(f"            /ai/voice/enroll, /ai/voice/profiles, /ai/voice/profile/*")
     print(f"{'=' * 55}\n")
-
-    # Pre-load models if desired (uncomment to load at startup)
-    # get_whisper_model()
-    # get_diarization_pipeline()
 
     app.run(host=host, port=port, debug=debug)

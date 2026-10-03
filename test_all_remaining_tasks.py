@@ -21,18 +21,20 @@ try:
     from voice_intelligence.test_task4_fingerprint import run_task4_verification
     from voice_intelligence.test_task5_attribution import run_task5_verification
     from voice_intelligence.test_task6_benchmarks import run_task6_verification
+    from voice_intelligence.test_voice_registration_and_recognition import run_test as run_registration_test
 except ImportError:
     from test_task3_overlap import run_task3_verification
     from test_task4_fingerprint import run_task4_verification
     from test_task5_attribution import run_task5_verification
     from test_task6_benchmarks import run_task6_verification
+    from test_voice_registration_and_recognition import run_test as run_registration_test
 
 
 def main():
     t_start = time.time()
     print("\n" + "#" * 72)
     print("#  OVERLAPPING-SPEECH ATTRIBUTION ENGINE: FULL REMAINING SUITE RUNNER  #")
-    print("#  Owner: Vedant (Member A) | Tasks 3, 4, 5, 6 Verification             #")
+    print("#  Owner: Vedant (Member A) | Tasks 3, 4, 5, 6 & Voice Registration    #")
     print("#" * 72)
 
     results = {}
@@ -64,6 +66,13 @@ def main():
     except Exception as e:
         print(f"❌ Task 6 Failed: {e}")
         results["Task 6: Patent Benchmarks"] = False
+
+    # Voice Registration & Recognition from Saved Data
+    try:
+        results["Voice Registration & Recognition"] = run_registration_test()
+    except Exception as e:
+        print(f"❌ Voice Registration & Recognition Failed: {e}")
+        results["Voice Registration & Recognition"] = False
 
     elapsed = time.time() - t_start
 

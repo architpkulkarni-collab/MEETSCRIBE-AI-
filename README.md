@@ -1,69 +1,31 @@
-# Voice & Speaker Intelligence (Feature #1)
-## Overlapping-Speech Attribution Engine
-
+# Voice Intelligence & Overlapping-Speech Attribution Engine
 **Owner:** Vedant (Member A)  
-**Patent Target:** Multi-Modal Temporal Clash Detection & Probabilistic Voice Fingerprint Decomposition for Simultaneous Speech
+**Feature:** Overlapping-Speech Attribution Suite & Voice Intelligence
 
 ---
 
-## 📂 Module Architecture
-
-All code for Feature #1 is self-contained in `voice_intelligence/` to guarantee zero collisions with teammates:
-
-```
-voice_intelligence/
-├── __init__.py                     # Module exports (Tasks 1 through 6)
-├── config.py                       # Hardware, model, and threshold configurations
-├── requirements.txt                # Dedicated dependencies for this feature
-├── whisper_transcriber.py          # [TASK 1] faster-whisper with word-level timestamps
-├── test_task1_whisper.py           # [TASK 1] Test & verification runner
-├── diarization_engine.py           # [TASK 2] pyannote clean speaker diarization
-├── test_task2_diarization.py       # [TASK 2] Test & verification runner
-├── overlap_detector.py             # [TASK 3] Sweep-line clash/collision detector
-├── test_task3_overlap.py           # [TASK 3] Test & verification runner
-├── voice_fingerprint.py            # [TASK 4] SpeechBrain ECAPA-TDNN mixed-signal embeddings
-├── test_task4_fingerprint.py       # [TASK 4] Test & verification runner
-├── attribution_engine.py           # [TASK 5] Soft confidence scoring (e.g. 70% Spk1, 30% Spk2)
-├── test_task5_attribution.py       # [TASK 5] Test & verification runner
-├── benchmark_eval.py               # [TASK 6] Empirical accuracy logs & patent proof harness
-├── test_task6_benchmarks.py        # [TASK 6] Test & verification runner
-├── test_all_remaining_tasks.py     # Master runner for Tasks 3-6
-├── benchmarks/                     # Benchmark logs & patent reports
-│   ├── patent_proof_report.json    # Machine-readable evaluation metrics
-│   └── patent_proof_report.md      # Formatted patent evidence report
-└── overlap_suite/                  # [DEDICATED SUITE FOLDER] Modular implementation
-    ├── __init__.py                 # Suite exports
-    ├── audio_utils.py              # WAV sub-second slicing & collision synthesis
-    ├── overlap_detector.py         # Task 3 core detector
-    ├── voice_fingerprint.py        # Task 4 core fingerprint engine
-    ├── attribution_engine.py       # Task 5 core probabilistic decomposition
-    ├── benchmark_eval.py           # Task 6 core benchmark harness
-    └── pipeline.py                 # Full End-to-End multi-modal pipeline
-```
+## 🎙️ Overview
+A high-accuracy acoustic and temporal intelligence suite built for multi-speaker meetings. Provides word-level transcription timestamps, pyannote speaker diarization, sweep-line overlapping speech clash detection, 192-dimensional ECAPA-TDNN voice fingerprinting with deterministic spectral fallback, probabilistic soft attribution decomposition, and persistent voice profile registration.
 
 ---
 
-## ⚡ Task 1: Word-Level Transcription (Complete)
-- **Engine:** CTranslate2 `faster-whisper`
-- **Output:** Word tokens with microsecond start and end timestamps (`w.start`, `w.end`, `w.probability`)
-- **Query Overlap Words:** `result.get_words_in_timerange(t_start, t_end)`
+## 📜 Task 1: Word-Level Transcription (faster-whisper) (Complete)
+- **Engine:** faster-whisper with CTranslate2 backend (float16 / int8).
+- **Capabilities:** Word-level timestamps, voice activity probability detection, automatic language detection.
 - **Run Verification:** `python voice_intelligence/test_task1_whisper.py`
 
 ---
 
-## 👥 Task 2: Speaker Diarization ("Who Spoke When") (Complete)
-- **Engine:** `pyannote/speaker-diarization-3.1` with CUDA/CPU placement and clean fallback.
-- **Output:** Structured `SpeakerTurn` timeline: `[start, end, speaker_id, duration]`.
-- **Patent Foundation:** Unlike traditional systems that discard simultaneous tracks, this engine preserves raw multi-track intervals so Task 3 can detect collisions.
-- **Clean Verification:** Checks whether a timeline is 100% clean (`is_clean == True`) or flags overlapping regions.
+## 👥 Task 2: pyannote Speaker Diarization Engine (Complete)
+- **Engine:** pyannote.audio speaker diarization with intelligent speech interval fallback.
+- **Capabilities:** Preserves multi-track speaker turns to allow collision detection rather than flattening simultaneous speakers. Matches segments against registered profiles when available.
 - **Run Verification:** `python voice_intelligence/test_task2_diarization.py`
 
 ---
 
-## 💥 Task 3: Overlap & Temporal Clash Detection (Complete)
-- **Engine:** Interval sweep-line collision detector.
-- **Output:** `CollisionSummary` with `OverlapSegment`s $[t_{\text{start}}, t_{\text{end}}]$, clashing speaker pairs, and colliding word tokens from Task 1.
-- **Pristine Reference Isolation:** Extracts clean single-speaker segments (`clean_segments`) for pristine voice enrollment.
+## ⚡ Task 3: Overlapping Clash Detection (Complete)
+- **Engine:** Sweep-line geometric collision detection algorithm.
+- **Capabilities:** Pinpoints exact millisecond intervals where two or more speakers speak simultaneously. Collates clashing word tokens.
 - **Run Verification:** `python voice_intelligence/test_task3_overlap.py`
 
 ---
@@ -95,8 +57,25 @@ voice_intelligence/
 
 ---
 
+## 🎙️ Voice Registration & Saved Profile Recognition (Feature Update)
+- **Voice Enrollment:** Register individual voices (e.g. Person 1, Person 2, etc.) from audio clips or mic recordings.
+- **Persistent Saved Data:** Automatically saves registered voice profiles to persistent JSON storage (`saved_profiles.json`) and syncs across restarts.
+- **Zero-Overlap Voice Differentiation:** Uses 192-dimensional embeddings combining pitch autocorrelation (F0 & harmonics), 32 Mel filterbanks, and formant ratios to cleanly differentiate Person 1 from Person 2 (intra-speaker similarity > 0.85, inter-speaker distance < 0.40).
+- **Meeting Diarization Integration:** Attributes each speech segment in meeting audio to the recognized registered person from saved data.
+- **REST APIs:**
+  - `POST /ai/voice/register`: Register a person's voice by name and persist to disk.
+  - `GET /ai/voice/saved-profiles`: Retrieve all enrolled profiles from saved data.
+  - `POST /ai/voice/recognize`: Identify the speaker in any audio sample.
+  - `DELETE /ai/voice/saved-profile/<name>`: Remove a registered profile.
+- **Run Verification:**
+  ```bash
+  python voice_intelligence/test_voice_registration_and_recognition.py
+  ```
+
+---
+
 ## 🚀 Run All Remaining Tasks (Master Runner)
-To run and verify Tasks 3, 4, 5, and 6 in a single sequence:
+To run and verify Tasks 3, 4, 5, 6, and the Voice Registration & Recognition suite in a single sequence:
 
 ```bash
 python voice_intelligence/test_all_remaining_tasks.py
