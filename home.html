@@ -1,371 +1,478 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AirScribe — Your Intelligent Workspace for Notes</title>
-    <meta name="description"
-        content="Write, organize, and connect your ideas with AirScribe — a powerful, beautifully designed note-taking workspace with AI tools, voice input, and knowledge graph." />
-    <meta name="keywords" content="AirScribe, Smart Notes, Note Taking, Productivity, AI, Knowledge Graph" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetScribe AI — The Living Diary</title>
+  <meta name="description" content="MeetScribe AI turns conversations into transcripts, summaries, and organized notes, helping you preserve what matters and find it when you need it." />
+  <meta name="keywords" content="MeetScribe, AI Note-Taking, Transcription, Living Diary, Speech-to-Text, Voice Summaries" />
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Google Fonts: Newsreader & Courier Prime -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet" />
 
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-
-    <!-- Styles -->
-    <link rel="stylesheet" href="home.css" />
-    <style>
-        .nav-user{display:flex;align-items:center;gap:10px;margin-left:14px;padding-left:14px;border-left:1px solid rgba(79,209,255,.15);}
-        .nav-user-avatar{width:30px;height:30px;border-radius:50%;border:2px solid #4fd1ff;object-fit:cover;}
-        .nav-user-name{font-size:13px;color:#8da4c2;font-weight:500;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-        .nav-logout{color:#f87171;font-size:14px;padding:4px 8px;border-radius:6px;transition:background .15s;text-decoration:none;}
-        .nav-logout:hover{background:rgba(248,113,113,.12);}
-    </style>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="landing.css" />
 </head>
+<body id="meetscribe-top">
 
-<body>
+  <!-- ═══════════════════════════════════════════════════
+       THE TRAVELLING FOUNTAIN PEN (FIXED PRODUCT MOTIF)
+       ═══════════════════════════════════════════════════ -->
+  <div id="travellingPen" class="travelling-pen" aria-hidden="true">
+    <img src="assets/fountain-pen.png" alt="Handcrafted vintage fountain pen" />
+  </div>
 
-    <!-- ═══════════ PAGE LOADER ═══════════ -->
-    <div class="page-loader" id="pageLoader">
-        <div class="loader-logo">✦</div>
-        <div class="loader-text">AirScribe</div>
+  <!-- ═══════════════════════════════════════════════════
+       FIXED NAVIGATION (~58PX)
+       ═══════════════════════════════════════════════════ -->
+  <header class="ms-navbar" id="navbar">
+    <div class="ms-container ms-navbar-inner">
+      <a href="#meetscribe-top" class="ms-brand-wordmark" aria-label="MeetScribe Home">
+        MeetScribe<span class="period-blue">.</span>
+      </a>
+
+      <nav aria-label="Primary Navigation">
+        <ul class="ms-nav-center" id="navCenter">
+          <li><a href="#argument" class="ms-nav-link">The Method</a></li>
+          <li><a href="#demonstration" class="ms-nav-link">Transformation</a></li>
+          <li><a href="#workspace" class="ms-nav-link">Notepad</a></li>
+          <li><a href="#capabilities" class="ms-nav-link">Features</a></li>
+        </ul>
+      </nav>
+
+      <div class="ms-nav-right">
+        <a href="AirScribe_v3.html?view=dashboard" class="btn-square-nav" id="navOpenWorkspaceBtn">Open Workspace</a>
+        <button type="button" class="ms-mobile-toggle" id="mobileNavToggle" aria-label="Toggle menu" aria-expanded="false">Menu</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════
+       HERO SECTION
+       ═══════════════════════════════════════════════════ -->
+  <section class="ms-hero" id="hero">
+    <div class="ms-container ms-hero-layout">
+      <!-- Left Column: Copy & Actions -->
+      <div class="ms-hero-copy">
+        <div class="mono-kicker">
+          <span>MEETSCRIBE AI</span>
+          <span>/</span>
+          <span>INTELLIGENT NOTE-TAKING</span>
+        </div>
+
+        <h1 class="serif-headline ms-hero-headline">
+          Every conversation leaves a <em>trace.</em>
+        </h1>
+
+        <p class="ms-hero-desc">
+          From spoken words to searchable knowledge. Capture conversations, create thoughtful summaries, and keep every important detail within reach.
+        </p>
+
+        <div class="ms-hero-ctas">
+          <a href="AirScribe_v3.html?view=dashboard" class="btn-square-primary" id="heroOpenWorkspace">
+            Open Your Workspace
+          </a>
+          <a href="#demonstration" class="btn-square-secondary" id="heroExploreMethod">
+            Explore The Method
+          </a>
+        </div>
+
+        <!-- Hairline-topped specification strip -->
+        <div class="ms-hero-spec-strip">
+          <span class="ms-spec-item">VOICE <span class="arrow">→</span> TEXT</span>
+          <span class="ms-spec-item">CONVERSATION <span class="arrow">→</span> CLARITY</span>
+          <span class="ms-spec-item">NOTES <span class="arrow">→</span> KNOWLEDGE</span>
+        </div>
+      </div>
+
+      <!-- Right Column: Visual Staging Space for Travelling Pen -->
+      <div class="ms-hero-visual-staging" aria-hidden="true">
+        <div class="ms-staging-box">
+          <span class="ms-staging-tag">ORIGIN / 01</span>
+          <span class="ms-staging-tag">ACOUSTIC INK</span>
+        </div>
+      </div>
     </div>
 
-    <!-- ═══════════ ANIMATED BACKGROUND ═══════════ -->
-    <div class="bg-gradient">
-        <div class="bg-orb bg-orb-1"></div>
-        <div class="bg-orb bg-orb-2"></div>
-        <div class="bg-orb bg-orb-3"></div>
+    <!-- Spread Wordmark at foot of Hero -->
+    <div class="ms-spread-wordmark-wrapper">
+      <div class="ms-spread-wordmark" id="heroWordmark" aria-hidden="true">
+        <span class="char">M</span>
+        <span class="char">E</span>
+        <span class="char">E</span>
+        <span class="char">T</span>
+        <span class="char">S</span>
+        <span class="char">C</span>
+        <span class="char">R</span>
+        <span class="char">I</span>
+        <span class="char">B</span>
+        <span class="char">E</span>
+      </div>
     </div>
-    <div class="bg-grid"></div>
+  </section>
 
-    <!-- ═══════════ CONTENT ═══════════ -->
-    <div class="content-wrapper">
+  <!-- ═══════════════════════════════════════════════════
+       SECTION: TWO-COLUMN PRODUCT ARGUMENT
+       ═══════════════════════════════════════════════════ -->
+  <section class="ms-argument-section" id="argument">
+    <div class="ms-container ms-argument-grid">
+      <!-- Left Column -->
+      <div class="ms-argument-left reveal-entry">
+        <div class="mono-kicker">
+          <span>THE METHOD</span>
+          <span>/</span>
+          <span>VALUE</span>
+        </div>
+        <h2 class="serif-headline ms-argument-title">
+          From spoken words to something you can return to.
+        </h2>
+        <p class="ms-argument-desc">
+          Conversations move quickly. Important details disappear just as easily. MeetScribe AI helps turn those fleeting moments into notes, summaries, and knowledge you can revisit.
+        </p>
+      </div>
 
-        <!-- ── NAVBAR ── -->
-        <nav class="navbar" id="navbar">
-            <a href="home.html" class="nav-brand">
-                <div class="nav-logo">✦</div>
-                <div class="nav-brand-text">
-                    <span class="nav-brand-name">AirScribe</span>
-                    <span class="nav-brand-sub">Smart Notes</span>
-                </div>
-            </a>
+      <!-- Right Column: Hairline-Ruled Rows -->
+      <div class="ms-argument-rows reveal-entry">
+        <!-- Row 1: Capture -->
+        <div class="ms-argument-row">
+          <span class="mono-label-blue">CAPTURE</span>
+          <p class="ms-row-desc">
+            Turn spoken input and conversations into written records.
+          </p>
+          <span class="ms-row-value">VOICE → TEXT</span>
+        </div>
 
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
-                <i class="fa fa-bars"></i>
-            </button>
+        <!-- Row 2: Understand -->
+        <div class="ms-argument-row">
+          <span class="mono-label-blue">UNDERSTAND</span>
+          <p class="ms-row-desc">
+            Condense information into clear summaries and useful takeaways.
+          </p>
+          <span class="ms-row-value">WORDS → CLARITY</span>
+        </div>
 
-            <div class="nav-links" id="navLinks">
-                <a href="AirScribe_v3.html?view=dashboard" class="nav-link">Dashboard</a>
-                <a href="AirScribe_v3.html?view=new" class="nav-link">New Note</a>
-                <a href="AirScribe_v3.html?view=recent" class="nav-link">Recent</a>
-                <a href="AirScribe_v3.html?view=pinned" class="nav-link">Pinned</a>
-                <a href="AirScribe_v3.html?view=dashboard" class="nav-cta">
-                    <i class="fa fa-arrow-right"></i> Enter Workspace
-                </a>
-                <div class="nav-user" id="navUser" style="display:none;">
-                    <img class="nav-user-avatar" id="navUserAvatar" src="" alt=""
-                        onerror="this.style.display='none'">
-                    <span class="nav-user-name" id="navUserName"></span>
-                    <a href="/auth/logout" class="nav-logout" title="Logout">
-                        <i class="fa fa-right-from-bracket"></i>
-                    </a>
-                </div>
-            </div>
-        </nav>
+        <!-- Row 3: Retrieve -->
+        <div class="ms-argument-row">
+          <span class="mono-label-blue">RETRIEVE</span>
+          <p class="ms-row-desc">
+            Keep notes organized and make important information easier to find.
+          </p>
+          <span class="ms-row-value">NOTES → KNOWLEDGE</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <!-- ── HERO SECTION ── -->
-        <section class="hero" id="hero">
-            <div class="hero-container">
+  <!-- ═══════════════════════════════════════════════════
+       SECTION: DEMONSTRATION — THE PEN BECOMES A WAVEFORM
+       ═══════════════════════════════════════════════════ -->
+  <section class="ms-demo-section" id="demonstration">
+    <div class="ms-container">
+      <div class="ms-demo-header reveal-entry">
+        <div class="mono-kicker">
+          <span>THE SIGNATURE TRANSFORMATION</span>
+        </div>
+        <h2 class="serif-headline ms-demo-title">
+          Listen to the shape of a conversation.
+        </h2>
+        <p class="ms-demo-desc">
+          Every conversation has a rhythm. MeetScribe AI helps preserve its words and meaning in a form you can revisit.
+        </p>
+      </div>
 
-                <!-- Left: Content -->
-                <div class="hero-content">
-                    <div class="hero-badge">
-                        <span class="hero-badge-dot"></span>
-                        Smart Workspace — Now Available
-                    </div>
+      <!-- Variant Picker Buttons -->
+      <div class="ms-variant-picker reveal-entry" role="group" aria-label="Transformation Views">
+        <button type="button" class="ms-variant-btn" data-variant="voice" aria-pressed="true">
+          VOICE
+        </button>
+        <button type="button" class="ms-variant-btn" data-variant="transcript" aria-pressed="false">
+          TRANSCRIPT
+        </button>
+        <button type="button" class="ms-variant-btn" data-variant="summary" aria-pressed="false">
+          SUMMARY
+        </button>
+      </div>
 
-                    <h1 class="hero-title">
-                        Your Intelligent<br />
-                        Workspace for<br />
-                        <span class="hero-title-gradient" id="heroTagline">Notes</span>
-                    </h1>
+      <!-- Fixed-in-layout Demonstration Panel -->
+      <div class="ms-demo-panel reveal-entry" id="demoPanel">
+        <div class="ms-demo-panel-topbar">
+          <span class="ms-panel-code">TRANSCRIPTION_PIPELINE // STAGE_V3</span>
+          <div class="ms-panel-indicator">
+            <span class="ms-indicator-square"></span>
+            <span>LIVE TRACE</span>
+          </div>
+        </div>
 
-                    <p class="hero-subtitle">
-                        Write, organize, and connect your ideas with a powerful and beautifully designed note-taking
-                        workspace. Powered by AI tools, voice input, and knowledge graph visualization.
-                    </p>
+        <!-- SVG Transformation Canvas -->
+        <div class="ms-demo-canvas-wrap">
+          <svg class="ms-demo-svg mode-voice" id="demoSvg" viewBox="0 0 1000 240" preserveAspectRatio="xMidYMid meet" aria-label="Visual transformation of fountain pen ink into voice waveform, transcript, and organized knowledge">
+            <!-- Subtle baseline guide -->
+            <line x1="20" y1="120" x2="980" y2="120" class="svg-guide-line" />
 
-                    <div class="hero-actions">
-                        <a href="AirScribe_v3.html?view=dashboard" class="btn btn-primary" data-view="dashboard">
-                            <i class="fa fa-rocket"></i> Enter Workspace
-                        </a>
-                        <a href="AirScribe_v3.html?view=new" class="btn btn-secondary" data-view="new">
-                            <i class="fa fa-plus"></i> Create New Note
-                        </a>
-                    </div>
-                </div>
+            <!-- Nib origin marker -->
+            <circle cx="28" cy="120" r="3.5" class="svg-nib-point" />
 
-                <!-- Right: Preview -->
-                <div class="hero-preview">
-                    <div class="preview-window">
-                        <div class="preview-titlebar">
-                            <span class="preview-dot"></span>
-                            <span class="preview-dot"></span>
-                            <span class="preview-dot"></span>
-                        </div>
-                        <div class="preview-body">
-                            <div class="preview-sidebar">
-                                <div class="preview-sidebar-item active">
-                                    <i class="fa fa-home"></i> Dashboard
-                                </div>
-                                <div class="preview-sidebar-item">
-                                    <i class="fa fa-plus"></i> New Note
-                                </div>
-                                <div class="preview-sidebar-item">
-                                    <i class="fa fa-clock"></i> Recent
-                                </div>
-                                <div class="preview-sidebar-item">
-                                    <i class="fa fa-thumbtack"></i> Pinned
-                                </div>
-                                <div class="preview-sidebar-item">
-                                    <i class="fa fa-bell"></i> Reminders
-                                </div>
-                                <div class="preview-sidebar-item">
-                                    <i class="fa fa-chart-bar"></i> Analytics
-                                </div>
-                                <div class="preview-sidebar-item">
-                                    <i class="fa fa-diagram-project"></i> Graph
-                                </div>
-                            </div>
-                            <div class="preview-main">
-                                <div class="preview-stat-row">
-                                    <div class="preview-stat">
-                                        <div class="preview-stat-num" style="color:#4fd1ff;">12</div>
-                                        <div class="preview-stat-label">Total Notes</div>
-                                    </div>
-                                    <div class="preview-stat">
-                                        <div class="preview-stat-num" style="color:#a78bfa;">5</div>
-                                        <div class="preview-stat-label">This Week</div>
-                                    </div>
-                                </div>
-                                <div class="preview-stat-row">
-                                    <div class="preview-stat">
-                                        <div class="preview-stat-num" style="color:#34d399;">4</div>
-                                        <div class="preview-stat-label">Folders</div>
-                                    </div>
-                                    <div class="preview-stat">
-                                        <div class="preview-stat-num" style="color:#fbbf24;">3</div>
-                                        <div class="preview-stat-label">Pinned</div>
-                                    </div>
-                                </div>
-                                <div class="preview-note-list">
-                                    <div class="preview-note">
-                                        <div class="preview-note-title">📝 Project Ideas</div>
-                                        <div class="preview-note-text">Brainstorming new features for the app…</div>
-                                    </div>
-                                    <div class="preview-note">
-                                        <div class="preview-note-title">📚 Study Notes</div>
-                                        <div class="preview-note-text">Chapter 5: Data structures and algorithms…</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Continuous transformation path: Ink Stroke -> Calligraphic Curl -> Acoustic Waveform -> Transcript -->
+            <!-- 1. Fine Ink Stroke & Cursive flourish (x: 28 to 220) -->
+            <path d="M 28,120 C 60,120 90,114 120,120 C 145,125 160,105 175,105 C 190,105 195,135 210,135 C 220,135 225,120 235,120" class="svg-main-path animate-stroke" />
 
-            </div>
-        </section>
+            <!-- 2. Voice Waveform Oscillations (x: 235 to 520) -->
+            <path d="M 235,120 C 248,85 258,155 272,120 C 285,60 296,180 310,120 C 322,40 334,200 348,120 C 360,70 370,170 382,120 C 395,30 408,210 422,120 C 435,65 446,175 460,120 C 472,85 484,155 498,120 C 510,100 518,140 528,120" class="svg-voice-segment animate-stroke" />
 
-        <!-- ── WORKSPACE CARDS ── -->
-        <section class="section" id="workspace">
-            <div class="section-header reveal">
-                <div class="section-label">
-                    <span class="section-label-line"></span>
-                    Your Workspace
-                    <span class="section-label-line"></span>
-                </div>
-                <h2 class="section-title">Jump Right Into<br />Your Workspace</h2>
-                <p class="section-desc">Everything you need to capture, organize, and connect your ideas — all in one
-                    place.</p>
-            </div>
+            <!-- Secondary acoustic harmonic waveform (accent in VOICE mode) -->
+            <path d="M 235,120 C 250,100 260,140 272,120 C 285,80 295,160 310,120 C 325,70 335,170 348,120 C 362,90 372,150 382,120 C 396,60 406,180 422,120 C 435,80 445,160 460,120 C 475,100 485,140 498,120 L 528,120" class="svg-secondary-wave" />
 
-            <div class="workspace-grid">
-                <a href="AirScribe_v3.html?view=dashboard" class="workspace-card reveal" data-view="dashboard">
-                    <div class="wc-icon wc-icon-dashboard">
-                        <i class="fa fa-chart-line"></i>
-                    </div>
-                    <div class="wc-title">Dashboard</div>
-                    <div class="wc-desc">View workspace analytics, recent notes, and activity at a glance.</div>
-                    <div class="wc-arrow">Open → </div>
-                </a>
+            <!-- 3. Resolving into Horizontal Transcript Lines (x: 528 to 740) -->
+            <!-- Transcript Line 1 (Upper) -->
+            <path d="M 540,98 L 595,98 M 606,98 L 665,98 M 676,98 L 735,98" class="svg-text-line animate-stroke" />
+            <!-- Transcript Line 2 (Center continuation) -->
+            <path d="M 528,120 L 585,120 M 596,120 L 655,120 M 666,120 L 740,120" class="svg-text-line animate-stroke" />
+            <!-- Transcript Line 3 (Lower) -->
+            <path d="M 540,142 L 600,142 M 612,142 L 670,142 M 682,142 L 725,142" class="svg-text-line animate-stroke" />
 
-                <a href="AirScribe_v3.html?view=new" class="workspace-card reveal" data-view="new">
-                    <div class="wc-icon wc-icon-new">
-                        <i class="fa fa-pen-to-square"></i>
-                    </div>
-                    <div class="wc-title">New Note</div>
-                    <div class="wc-desc">Start writing a new idea instantly with the rich text editor.</div>
-                    <div class="wc-arrow">Create → </div>
-                </a>
+            <!-- 4. Summary & Highlighted Takeaways (x: 770 to 970) -->
+            <!-- Bracket -->
+            <path d="M 770,85 L 762,85 L 762,155 L 770,155" class="svg-summary-bracket" />
 
-                <a href="AirScribe_v3.html?view=recent" class="workspace-card reveal" data-view="recent">
-                    <div class="wc-icon wc-icon-recent">
-                        <i class="fa fa-clock-rotate-left"></i>
-                    </div>
-                    <div class="wc-title">Recent Notes</div>
-                    <div class="wc-desc">Quick access to your latest work from the past 7 days.</div>
-                    <div class="wc-arrow">Browse → </div>
-                </a>
+            <!-- Takeaway row 1 -->
+            <rect x="782" y="93" width="7" height="7" class="svg-takeaway-marker" />
+            <line x1="798" y1="96.5" x2="945" y2="96.5" class="svg-text-line animate-stroke" />
 
-                <a href="AirScribe_v3.html?view=pinned" class="workspace-card reveal" data-view="pinned">
-                    <div class="wc-icon wc-icon-pinned">
-                        <i class="fa fa-thumbtack"></i>
-                    </div>
-                    <div class="wc-title">Pinned Notes</div>
-                    <div class="wc-desc">Keep your most important notes always visible and accessible.</div>
-                    <div class="wc-arrow">View → </div>
-                </a>
-            </div>
-        </section>
+            <!-- Takeaway row 2 (Highlighted) -->
+            <rect x="782" y="116.5" width="7" height="7" class="svg-takeaway-marker" />
+            <line x1="798" y1="120" x2="965" y2="120" class="svg-text-line animate-stroke" />
 
-        <!-- ── FEATURE HIGHLIGHTS ── -->
-        <section class="section" id="features">
-            <div class="section-header reveal">
-                <div class="section-label">
-                    <span class="section-label-line"></span>
-                    Powerful Features
-                    <span class="section-label-line"></span>
-                </div>
-                <h2 class="section-title">Everything You Need<br />to Be Productive</h2>
-                <p class="section-desc">AirScribe combines intelligent tools with a clean workspace to help you write,
-                    think, and create.</p>
-            </div>
+            <!-- Takeaway row 3 -->
+            <rect x="782" y="140" width="7" height="7" class="svg-takeaway-marker" />
+            <line x1="798" y1="143.5" x2="915" y2="143.5" class="svg-text-line animate-stroke" />
 
-            <div class="features-grid">
-                <div class="feature-card reveal">
-                    <div class="feature-icon fi-notes">
-                        <i class="fa fa-file-pen"></i>
-                    </div>
-                    <div class="feature-title">Smart Notes</div>
-                    <div class="feature-desc">Rich text editing with Quill.js — headers, lists, code blocks, images, and
-                        more. Organize ideas effortlessly.</div>
-                </div>
+            <!-- Stage Labels underneath -->
+            <text x="30" y="215" class="svg-label-text">01 / INK NIB</text>
+            <text x="145" y="215" class="svg-label-text">02 / TRACE</text>
+            <text x="340" y="215" class="svg-label-text">03 / VOICE WAVEFORM</text>
+            <text x="600" y="215" class="svg-label-text">04 / TRANSCRIPT</text>
+            <text x="820" y="215" class="svg-label-text">05 / SUMMARY</text>
+          </svg>
+        </div>
 
-                <div class="feature-card reveal">
-                    <div class="feature-icon fi-ai">
-                        <i class="fa fa-wand-magic-sparkles"></i>
-                    </div>
-                    <div class="feature-title">AI Tools</div>
-                    <div class="feature-desc">Summarize notes, expand ideas, fix grammar, generate bullet points, and
-                        more with built-in AI assistance.</div>
-                </div>
+        <!-- Dynamic Description & Fact Footer -->
+        <div class="ms-demo-panel-footer">
+          <p class="ms-demo-dynamic-desc" id="demoVariantDesc">
+            A conversation begins as sound. Every spoken phrase carries cadence, tone, and acoustic rhythm before becoming text.
+          </p>
+          <span class="ms-demo-dynamic-fact" id="demoVariantFact">
+            INPUT / SPOKEN WORDS
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
 
-                <div class="feature-card reveal">
-                    <div class="feature-icon fi-voice">
-                        <i class="fa fa-microphone"></i>
-                    </div>
-                    <div class="feature-title">Voice Input</div>
-                    <div class="feature-desc">Capture thoughts hands-free with live speech recognition. Dictate notes
-                        and watch them appear in real-time.</div>
-                </div>
+  <!-- ═══════════════════════════════════════════════════
+       SECTION: MATERIAL — THE VIRTUAL NOTEPAD
+       ═══════════════════════════════════════════════════ -->
+  <section class="ms-material-section" id="workspace">
+    <div class="ms-container ms-material-grid">
+      <!-- Left Column: Copy & Value Proposition -->
+      <div class="ms-material-copy reveal-entry">
+        <div class="mono-kicker">
+          <span>THE VIRTUAL NOTEPAD</span>
+        </div>
+        <h2 class="serif-headline ms-material-title">
+          A place for everything worth remembering.
+        </h2>
+        <p class="body-lead">
+          MeetScribe AI brings notes, transcripts, summaries, and important takeaways into a workspace designed to help you return to what matters.
+        </p>
 
-                <div class="feature-card reveal">
-                    <div class="feature-icon fi-graph">
-                        <i class="fa fa-diagram-project"></i>
-                    </div>
-                    <div class="feature-title">Knowledge Graph</div>
-                    <div class="feature-desc">Visualize connections between your notes with an interactive network
-                        graph. See how your ideas relate.</div>
-                </div>
+        <div class="ms-material-features">
+          <div class="ms-mat-feature-item">
+            <span class="tag">RECORD</span>
+            <span>Spoken conversations captured as legible transcripts with speaker attribution.</span>
+          </div>
+          <div class="ms-mat-feature-item">
+            <span class="tag">SYNTHESIZE</span>
+            <span>Structured executive summaries that preserve key decisions and context.</span>
+          </div>
+          <div class="ms-mat-feature-item">
+            <span class="tag">RETRIEVE</span>
+            <span>Natural-language semantic search across all personal and meeting notes.</span>
+          </div>
+          <div class="ms-mat-feature-item">
+            <span class="tag">EXPORT</span>
+            <span>Direct export to Markdown, plaintext, or PDF for permanent archives.</span>
+          </div>
+        </div>
 
-                <div class="feature-card reveal">
-                    <div class="feature-icon fi-tags">
-                        <i class="fa fa-tags"></i>
-                    </div>
-                    <div class="feature-title">Tag System</div>
-                    <div class="feature-desc">Organize notes with flexible tags. Autocomplete suggestions, sidebar
-                        filtering, and instant tag-based search.</div>
-                </div>
+        <div style="padding-top: 1rem;">
+          <a href="AirScribe_v3.html?view=dashboard" class="btn-square-primary">
+            Open Virtual Notepad
+          </a>
+        </div>
+      </div>
 
-                <div class="feature-card reveal">
-                    <div class="feature-icon fi-export">
-                        <i class="fa fa-file-export"></i>
-                    </div>
-                    <div class="feature-title">Export & Present</div>
-                    <div class="feature-desc">Export notes as TXT, DOC, or PDF. Convert any note into a presentation
-                        with slide navigation.</div>
-                </div>
-            </div>
-        </section>
+      <!-- Right Column: Authentic Workspace Showcase Preview -->
+      <div class="ms-notepad-preview-card reveal-entry">
+        <!-- Top bar -->
+        <div class="ms-preview-topbar">
+          <div class="ms-preview-title-bar">
+            <span class="ms-preview-dot"></span>
+            <span class="ms-preview-file-name">workspace / notes / product-strategy-review.note</span>
+          </div>
+          <span class="ms-preview-badge-status">SESSION ACTIVE</span>
+        </div>
 
-        <!-- ── CTA BANNER ── -->
-        <section class="cta-section">
-            <div class="cta-banner reveal">
-                <h2 class="cta-title">Ready to Start Writing?</h2>
-                <p class="cta-desc">Your ideas deserve a beautiful home. Enter the AirScribe workspace and start
-                    capturing your thoughts today.</p>
-                <div class="cta-actions">
-                    <a href="AirScribe_v3.html?view=dashboard" class="btn btn-primary" data-view="dashboard">
-                        <i class="fa fa-rocket"></i> Enter Workspace
-                    </a>
-                    <a href="AirScribe_v3.html?view=new" class="btn btn-secondary" data-view="new">
-                        <i class="fa fa-plus"></i> Create New Note
-                    </a>
-                </div>
-            </div>
-        </section>
+        <!-- Real Application Screenshot Frame -->
+        <div class="ms-preview-screenshot-wrap">
+          <img src="assets/dashboard-screenshot.png" alt="MeetScribe AI virtual notepad and dashboard interface" class="ms-preview-screenshot" />
+        </div>
 
-        <!-- ── FOOTER ── -->
-        <footer class="footer">
-            <div class="footer-inner">
-                <div class="footer-brand">
-                    <div class="footer-logo">✦</div>
-                    <div class="footer-brand-info">
-                        <h4>AirScribe — Smart Notes</h4>
-                        <p>Your Intelligent Workspace</p>
-                    </div>
-                </div>
+        <!-- Stationery Inspection Panel -->
+        <div class="ms-preview-inspection-panel">
+          <div class="ms-inspection-header">
+            <h4 class="ms-inspection-title">Product Strategy Review — Q3 Expansion</h4>
+            <span class="ms-inspection-meta">45 MIN RECORDING · 4 PARTICIPANTS</span>
+          </div>
 
-                <div class="footer-links">
-                    <a href="AirScribe_v3.html?view=dashboard" class="footer-link">Dashboard</a>
-                    <a href="AirScribe_v3.html?view=new" class="footer-link">New Note</a>
-                    <a href="AirScribe_v3.html?view=recent" class="footer-link">Recent</a>
-                    <a href="AirScribe_v3.html?view=pinned" class="footer-link">Pinned</a>
-                    <a href="AirScribe_v3.html?view=analytics" class="footer-link">Analytics</a>
-                    <a href="AirScribe_v3.html?view=graph" class="footer-link">Knowledge Graph</a>
-                </div>
+          <div class="ms-inspection-body">
+            <div class="ms-inspection-col">
+              <h5>EXECUTIVE SUMMARY</h5>
+              <p>
+                Reviewed core platform deliverables and speech attribution benchmarks. Confirmed encrypted note storage deployment and semantic query capabilities.
+              </p>
             </div>
 
-            <div class="footer-credit">
-                AirScribe — Developed by ASEP Group 9 · © 2026
+            <div class="ms-inspection-col">
+              <h5>ACTION ITEMS</h5>
+              <ul class="ms-action-item-list">
+                <li>Verify word-level timestamp alignment on multi-speaker tracks</li>
+                <li>Index encrypted note store for semantic search retrieval</li>
+                <li>Archive meeting record to permanent workspace notebook</li>
+              </ul>
             </div>
-        </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- ═══════════════════════════════════════════════════
+       SECTION: MEASUREMENTS & CAPABILITIES
+       ═══════════════════════════════════════════════════ -->
+  <section class="ms-capabilities-section" id="capabilities">
+    <div class="ms-container">
+      <div class="ms-cap-header reveal-entry">
+        <div class="mono-kicker">
+          <span>CAPABILITIES & SPECIFICATIONS</span>
+        </div>
+        <h2 class="serif-headline ms-cap-title">
+          Made for the details that matter.
+        </h2>
+      </div>
+
+      <div class="ms-capabilities-list reveal-entry">
+        <!-- Row 1: Voice-to-Text -->
+        <div class="ms-capability-row">
+          <span class="ms-cap-name">VOICE-TO-TEXT</span>
+          <p class="ms-cap-desc">Convert spoken input into written notes where supported.</p>
+          <span class="ms-cap-tag">INPUT / REAL-TIME</span>
+        </div>
+
+        <!-- Row 2: Transcription -->
+        <div class="ms-capability-row">
+          <span class="ms-cap-name">TRANSCRIPTION</span>
+          <p class="ms-cap-desc">Review captured conversation text where supported.</p>
+          <span class="ms-cap-tag">RECORD / WORD-LEVEL</span>
+        </div>
+
+        <!-- Row 3: AI Summaries -->
+        <div class="ms-capability-row">
+          <span class="ms-cap-name">AI SUMMARIES</span>
+          <p class="ms-cap-desc">Condense long notes into concise summaries where supported.</p>
+          <span class="ms-cap-tag">SYNTHESIS / EXECUTIVE</span>
+        </div>
+
+        <!-- Row 4: Searchable Notes -->
+        <div class="ms-capability-row">
+          <span class="ms-cap-name">SEARCHABLE NOTES</span>
+          <p class="ms-cap-desc">Find relevant information across your notes where supported.</p>
+          <span class="ms-cap-tag">RETRIEVAL / SEMANTIC</span>
+        </div>
+
+        <!-- Row 5: Export -->
+        <div class="ms-capability-row">
+          <span class="ms-cap-name">EXPORT</span>
+          <p class="ms-cap-desc">Download notes in the formats supported by the current application.</p>
+          <span class="ms-cap-tag">OUTPUT / MULTI-FORMAT</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       CLOSING SECTION & FOOTER
+       ═══════════════════════════════════════════════════ -->
+  <footer class="ms-closing-section" id="closing">
+    <div class="ms-container">
+      <div class="ms-closing-layout reveal-entry">
+        <div class="ms-closing-copy">
+          <div class="mono-kicker">
+            <span>PRESERVE WHAT MATTERS</span>
+          </div>
+          <h2 class="serif-headline ms-closing-headline">
+            Let the important words <em>stay.</em>
+          </h2>
+          <p class="ms-closing-desc">
+            Capture conversations, organize your thoughts, and return to the details that matter.
+          </p>
+        </div>
+
+        <div class="ms-closing-ctas">
+          <a href="AirScribe_v3.html?view=dashboard" class="btn-square-primary">
+            Open Your Workspace
+          </a>
+          <a href="#capabilities" class="btn-square-secondary">
+            Explore Features
+          </a>
+        </div>
+      </div>
+
+      <!-- Thin Footer Strip -->
+      <div class="ms-footer-strip">
+        <div class="ms-footer-left">
+          <span class="ms-footer-wordmark">MeetScribe<span class="period-blue">.</span></span>
+          <span class="ms-footer-tagline">Stationery-inspired intelligence for spoken conversations.</span>
+        </div>
+
+        <ul class="ms-footer-links">
+          <li><a href="#argument" class="ms-footer-link">The Method</a></li>
+          <li><a href="#capabilities" class="ms-footer-link">Features</a></li>
+          <li><a href="AirScribe_v3.html?view=dashboard" class="ms-footer-link">Workspace</a></li>
+          <li><a href="login.html" class="ms-footer-link">Sign In</a></li>
+        </ul>
+      </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="home.js"></script>
-    <script>
-        // Load user profile into navbar
-        fetch('/auth/status').then(r=>r.json()).then(d=>{
-            if(d.authenticated && d.user){
-                const el=document.getElementById('navUser');
-                if(el){el.style.display='flex';}
-                const av=document.getElementById('navUserAvatar');
-                if(av && d.user.picture){av.src=d.user.picture;av.style.display='';}
-                else if(av){av.style.display='none';}
-                const nm=document.getElementById('navUserName');
-                if(nm){nm.textContent=d.user.name||d.user.email;}
-            }
-        }).catch(()=>{});
-    </script>
+    <!-- Bottom Spread Wordmark -->
+    <div class="ms-bottom-wordmark-wrap">
+      <div class="ms-bottom-wordmark" id="bottomWordmark" aria-hidden="true">
+        <span class="char">M</span>
+        <span class="char">E</span>
+        <span class="char">E</span>
+        <span class="char">T</span>
+        <span class="char">S</span>
+        <span class="char">C</span>
+        <span class="char">R</span>
+        <span class="char">I</span>
+        <span class="char">B</span>
+        <span class="char">E</span>
+      </div>
+    </div>
+  </footer>
 
+  <!-- Scripts -->
+  <script src="landing.js"></script>
 </body>
-
 </html>

@@ -1,0 +1,1345 @@
+/* ══════════════════════════════════════════════════════════════════
+   MEETSCRIBE AI — THE LIVING DIARY
+   Stationery-Inspired Editorial SaaS Design System & Stylesheet
+   Pure Vanilla CSS · No Gradients · No Rounded Corners · Square Hairline Aesthetic
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. DESIGN TOKENS ── */
+:root {
+  /* Palette */
+  --c-ground: #EFE9DD;
+  --c-ground-secondary: #E5DED0;
+  --c-primary-ink: #141C2B;
+  --c-secondary-ink: #4A5364;
+  --c-muted: #767E8C;
+  --c-accent-blue: #2C4A8F;
+  --c-hairline: rgba(20, 28, 43, 0.16);
+  --c-hairline-subtle: rgba(20, 28, 43, 0.08);
+  --c-hairline-strong: rgba(20, 28, 43, 0.32);
+
+  /* Translucent grounds for backdrop-filter nav */
+  --c-nav-bg: rgba(229, 222, 208, 0.88);
+  --c-panel-bg: rgba(239, 233, 221, 0.7);
+
+  /* Typography */
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-mono: 'Courier Prime', 'Courier New', Courier, monospace;
+
+  /* Dimensions */
+  --nav-height: 58px;
+  --container-max: 1220px;
+  --container-pad: 2.5rem;
+}
+
+/* ── 2. RESET & BASE ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-radius: 0 !important; /* Strict stationery rule: square corners throughout */
+}
+
+html {
+  background-color: var(--c-ground);
+  color: var(--c-primary-ink);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.9;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--c-ground);
+  color: var(--c-primary-ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--c-accent-blue);
+  color: #FFFFFF;
+}
+
+/* Links & Buttons */
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* Container */
+.ms-container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-pad);
+  padding-right: var(--container-pad);
+}
+
+/* ── 3. TYPOGRAPHY UTILITIES ── */
+.serif-headline {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--c-primary-ink);
+  line-height: 1.15;
+}
+
+.serif-headline em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--c-accent-blue);
+}
+
+.mono-kicker {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-secondary-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.mono-label-blue {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-accent-blue);
+}
+
+.body-lead {
+  font-family: var(--font-mono);
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--c-secondary-ink);
+}
+
+/* ── 4. SQUARE BUTTONS (NO GRADIENTS, NO ROUNDING) ── */
+.btn-square-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background-color: var(--c-primary-ink);
+  color: var(--c-ground);
+  border: 1px solid var(--c-primary-ink);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 13px 24px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-square-primary:hover {
+  background-color: transparent;
+  color: var(--c-primary-ink);
+}
+
+.btn-square-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background-color: transparent;
+  color: var(--c-primary-ink);
+  border: 1px solid var(--c-hairline-strong);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 13px 24px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-square-secondary:hover {
+  border-color: var(--c-accent-blue);
+  color: var(--c-accent-blue);
+}
+
+.btn-square-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--c-primary-ink);
+  color: var(--c-ground);
+  border: 1px solid var(--c-primary-ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  transition: all 0.2s ease;
+}
+
+.btn-square-nav:hover {
+  background-color: transparent;
+  color: var(--c-primary-ink);
+}
+
+/* ── 5. FIXED NAVIGATION BAR (~58px) ── */
+.ms-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-height);
+  background-color: var(--c-nav-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--c-hairline);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+}
+
+.ms-navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ms-brand-wordmark {
+  font-family: var(--font-serif);
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-primary-ink);
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.ms-brand-wordmark .period-blue {
+  color: var(--c-accent-blue);
+  font-weight: 600;
+}
+
+.ms-nav-center {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  list-style: none;
+}
+
+.ms-nav-link {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-secondary-ink);
+  transition: color 0.18s ease;
+  position: relative;
+  padding: 4px 0;
+}
+
+.ms-nav-link:hover {
+  color: var(--c-accent-blue);
+}
+
+.ms-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ms-mobile-toggle {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  border: 1px solid var(--c-hairline);
+  color: var(--c-primary-ink);
+}
+
+/* ── 6. THE TRAVELLING FOUNTAIN PEN ── */
+.travelling-pen {
+  position: fixed;
+  z-index: 900;
+  pointer-events: none;
+  width: 280px;
+  height: 280px;
+  will-change: transform, opacity;
+  transform-origin: 22% 82%; /* Natural pivoting origin near nib point */
+  transition: opacity 0.4s ease;
+  visibility: visible;
+}
+
+.travelling-pen img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Realistic, restrained stationery cut-out drop shadow */
+  filter: drop-shadow(0 18px 30px rgba(20, 28, 43, 0.22));
+}
+
+.travelling-pen.pen-hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* ── 7. HERO SECTION ── */
+.ms-hero {
+  position: relative;
+  min-height: calc(100vh - var(--nav-height));
+  background-color: var(--c-ground-secondary);
+  border-bottom: 1px solid var(--c-hairline);
+  padding-top: calc(var(--nav-height) + 3.5rem);
+  padding-bottom: 0; /* Wordmark anchors the baseline */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.ms-hero-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 3rem;
+  align-items: center;
+  min-height: 58vh;
+  position: relative;
+  z-index: 2;
+}
+
+.ms-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  max-width: 620px;
+}
+
+.ms-hero-headline {
+  font-family: var(--font-serif);
+  font-size: clamp(2.7rem, 5.2vw, 4.4rem);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: var(--c-primary-ink);
+}
+
+.ms-hero-headline em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--c-accent-blue);
+}
+
+.ms-hero-desc {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--c-secondary-ink);
+  max-width: 540px;
+}
+
+.ms-hero-ctas {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+}
+
+/* Specification Strip at bottom of copy column */
+.ms-hero-spec-strip {
+  margin-top: 1.8rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--c-hairline);
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.ms-spec-item {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--c-secondary-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ms-spec-item .arrow {
+  color: var(--c-accent-blue);
+}
+
+/* Right column spacer for the travelling pen's opening stop */
+.ms-hero-visual-staging {
+  position: relative;
+  min-height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Subtle stationery framing hairline box */
+.ms-staging-box {
+  border: 1px dashed var(--c-hairline);
+  width: 90%;
+  height: 290px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.2rem;
+  opacity: 0.6;
+}
+
+.ms-staging-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+/* Spread Wordmark at foot of Hero */
+.ms-spread-wordmark-wrapper {
+  width: 100%;
+  overflow: hidden;
+  border-top: 1px solid var(--c-hairline);
+  position: relative;
+  margin-top: 2rem;
+  background-color: var(--c-ground-secondary);
+}
+
+.ms-spread-wordmark {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(3.4rem, 11.2vw, 9.8rem);
+  line-height: 0.8;
+  letter-spacing: -0.035em;
+  color: var(--c-primary-ink);
+  user-select: none;
+  pointer-events: none;
+  transform: translateY(22%); /* Crop baseline slightly against the edge */
+  will-change: transform;
+}
+
+.ms-spread-wordmark .char {
+  display: inline-block;
+  transition: transform 0.05s linear;
+  will-change: transform;
+}
+
+/* ── 8. SECTION: TWO-COLUMN PRODUCT ARGUMENT ── */
+.ms-argument-section {
+  background-color: var(--c-ground);
+  padding: 7rem 0 6.5rem;
+  border-bottom: 1px solid var(--c-hairline);
+  position: relative;
+}
+
+.ms-argument-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 4.5rem;
+  align-items: start;
+}
+
+.ms-argument-left {
+  position: sticky;
+  top: calc(var(--nav-height) + 3rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ms-argument-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 3.5vw, 2.85rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.ms-argument-desc {
+  font-family: var(--font-mono);
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--c-secondary-ink);
+}
+
+.ms-argument-rows {
+  border-top: 1px solid var(--c-hairline);
+}
+
+.ms-argument-row {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  gap: 1.5rem;
+  align-items: baseline;
+  padding: 2.2rem 0;
+  border-bottom: 1px solid var(--c-hairline);
+  transition: background-color 0.2s ease;
+}
+
+.ms-argument-row:hover {
+  background-color: rgba(20, 28, 43, 0.02);
+}
+
+.ms-row-desc {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--c-secondary-ink);
+}
+
+.ms-row-value {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--c-primary-ink);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ── 9. SECTION: DEMONSTRATION (THE PEN BECOMES A VOICE WAVEFORM) ── */
+.ms-demo-section {
+  background-color: var(--c-ground-secondary);
+  padding: 7rem 0 6.5rem;
+  border-bottom: 1px solid var(--c-hairline);
+  position: relative;
+}
+
+.ms-demo-header {
+  max-width: 740px;
+  margin-bottom: 3rem;
+}
+
+.ms-demo-header .mono-kicker {
+  margin-bottom: 1rem;
+}
+
+.ms-demo-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.2rem;
+}
+
+.ms-demo-desc {
+  font-family: var(--font-mono);
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--c-secondary-ink);
+}
+
+/* Variant Picker Bar */
+.ms-variant-picker {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--c-hairline);
+  background-color: var(--c-ground);
+  margin-bottom: 2rem;
+  width: fit-content;
+}
+
+.ms-variant-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 11px 22px;
+  border: none;
+  border-right: 1px solid var(--c-hairline);
+  background-color: transparent;
+  color: var(--c-secondary-ink);
+  transition: all 0.18s ease;
+  position: relative;
+}
+
+.ms-variant-btn:last-child {
+  border-right: none;
+}
+
+.ms-variant-btn:hover {
+  color: var(--c-primary-ink);
+  background-color: rgba(20, 28, 43, 0.03);
+}
+
+.ms-variant-btn[aria-pressed="true"] {
+  background-color: var(--c-primary-ink);
+  color: var(--c-ground);
+}
+
+/* Fixed-in-layout Demonstration Panel */
+.ms-demo-panel {
+  background-color: var(--c-ground);
+  border: 1px solid var(--c-hairline);
+  position: relative;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-height: 440px;
+}
+
+.ms-demo-panel-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--c-hairline-subtle);
+}
+
+.ms-panel-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--c-muted);
+}
+
+.ms-panel-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--c-accent-blue);
+}
+
+.ms-indicator-square {
+  width: 7px;
+  height: 7px;
+  background-color: var(--c-accent-blue);
+}
+
+/* SVG Container */
+.ms-demo-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ms-demo-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Stroke Styling */
+.svg-nib-point {
+  fill: var(--c-accent-blue);
+}
+
+.svg-guide-line {
+  stroke: var(--c-hairline-subtle);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.svg-main-path {
+  fill: none;
+  stroke: var(--c-primary-ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+.svg-voice-segment {
+  fill: none;
+  stroke: var(--c-primary-ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.35s ease;
+}
+
+.svg-secondary-wave {
+  fill: none;
+  stroke: rgba(44, 74, 143, 0.35);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.svg-text-line {
+  stroke: var(--c-secondary-ink);
+  stroke-width: 1.8;
+  stroke-linecap: square;
+  transition: all 0.35s ease;
+}
+
+.svg-summary-bracket {
+  fill: none;
+  stroke: var(--c-hairline-strong);
+  stroke-width: 1.2;
+}
+
+.svg-takeaway-marker {
+  fill: var(--c-primary-ink);
+  transition: fill 0.35s ease;
+}
+
+.svg-label-text {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  fill: var(--c-muted);
+}
+
+/* Variant state modifications */
+.mode-voice .svg-voice-segment {
+  stroke: var(--c-accent-blue) !important;
+  stroke-width: 2.4 !important;
+}
+
+.mode-voice .svg-secondary-wave {
+  opacity: 1 !important;
+}
+
+.mode-transcript .svg-text-line {
+  stroke: var(--c-accent-blue) !important;
+  stroke-width: 2.2 !important;
+}
+
+.mode-summary .svg-takeaway-marker {
+  fill: var(--c-accent-blue) !important;
+}
+
+.mode-summary .svg-summary-bracket {
+  stroke: var(--c-accent-blue) !important;
+  stroke-width: 1.8 !important;
+}
+
+/* Demonstration Footer Meta */
+.ms-demo-panel-footer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: baseline;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--c-hairline-subtle);
+}
+
+.ms-demo-dynamic-desc {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--c-secondary-ink);
+  min-height: 2.4em;
+  transition: opacity 0.2s ease;
+}
+
+.ms-demo-dynamic-fact {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--c-accent-blue);
+  white-space: nowrap;
+}
+
+/* ── 10. SECTION: MATERIAL — THE VIRTUAL NOTEPAD ── */
+.ms-material-section {
+  background-color: var(--c-ground);
+  padding: 7rem 0 6.5rem;
+  border-bottom: 1px solid var(--c-hairline);
+  position: relative;
+}
+
+.ms-material-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 4.5rem;
+  align-items: start;
+}
+
+.ms-material-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  position: sticky;
+  top: calc(var(--nav-height) + 3rem);
+}
+
+.ms-material-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 3.5vw, 2.9rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.ms-material-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--c-hairline);
+  padding-top: 1.5rem;
+}
+
+.ms-mat-feature-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--c-secondary-ink);
+}
+
+.ms-mat-feature-item .tag {
+  font-weight: 700;
+  color: var(--c-primary-ink);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  min-width: 90px;
+}
+
+/* Authentic Virtual Notepad Preview Frame */
+.ms-notepad-preview-card {
+  border: 1px solid var(--c-hairline);
+  background-color: #FFFFFF;
+  /* Restrained, realistic stationery shadow */
+  box-shadow: 0 12px 36px rgba(20, 28, 43, 0.07);
+  display: flex;
+  flex-direction: column;
+}
+
+.ms-preview-topbar {
+  background-color: var(--c-ground-secondary);
+  border-bottom: 1px solid var(--c-hairline);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ms-preview-title-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.ms-preview-dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--c-primary-ink);
+  background-color: var(--c-ground);
+}
+
+.ms-preview-file-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--c-primary-ink);
+}
+
+.ms-preview-badge-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-accent-blue);
+  border: 1px solid var(--c-hairline);
+  padding: 2px 7px;
+}
+
+/* Embedded Actual Screenshot Asset */
+.ms-preview-screenshot-wrap {
+  border-bottom: 1px solid var(--c-hairline);
+  position: relative;
+  overflow: hidden;
+  background-color: #0b1220; /* Matches AirScribe dark theme backdrop */
+}
+
+.ms-preview-screenshot {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  opacity: 0.96;
+}
+
+/* Stationery Note Inspection Panel below screenshot */
+.ms-preview-inspection-panel {
+  padding: 1.8rem;
+  background-color: var(--c-ground);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.ms-inspection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--c-hairline);
+  padding-bottom: 0.8rem;
+}
+
+.ms-inspection-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--c-primary-ink);
+}
+
+.ms-inspection-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--c-muted);
+}
+
+.ms-inspection-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.ms-inspection-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ms-inspection-col h5 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-accent-blue);
+}
+
+.ms-inspection-col p {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--c-secondary-ink);
+}
+
+.ms-action-item-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ms-action-item-list li {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--c-secondary-ink);
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.ms-action-item-list li::before {
+  content: '—';
+  color: var(--c-primary-ink);
+}
+
+/* ── 11. SECTION: MEASUREMENTS & CAPABILITIES ── */
+.ms-capabilities-section {
+  background-color: var(--c-ground-secondary);
+  padding: 7rem 0 6.5rem;
+  border-bottom: 1px solid var(--c-hairline);
+  position: relative;
+}
+
+.ms-cap-header {
+  max-width: 720px;
+  margin-bottom: 3.5rem;
+}
+
+.ms-cap-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2.2rem, 3.8vw, 3.1rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.ms-capabilities-list {
+  border-top: 1px solid var(--c-hairline);
+}
+
+.ms-capability-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 180px;
+  gap: 2rem;
+  align-items: baseline;
+  padding: 2.2rem 0;
+  border-bottom: 1px solid var(--c-hairline);
+  transition: background-color 0.18s ease;
+}
+
+.ms-capability-row:hover {
+  background-color: rgba(20, 28, 43, 0.02);
+}
+
+.ms-cap-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-primary-ink);
+}
+
+.ms-cap-desc {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--c-secondary-ink);
+}
+
+.ms-cap-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--c-accent-blue);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── 12. SECTION: CLOSING SECTION & FOOTER ── */
+.ms-closing-section {
+  background-color: var(--c-ground);
+  padding: 8rem 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.ms-closing-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 4rem;
+  align-items: end;
+  padding-bottom: 5rem;
+  border-bottom: 1px solid var(--c-hairline);
+}
+
+.ms-closing-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.ms-closing-headline {
+  font-family: var(--font-serif);
+  font-size: clamp(2.6rem, 5vw, 4.2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--c-primary-ink);
+}
+
+.ms-closing-headline em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--c-accent-blue);
+}
+
+.ms-closing-desc {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--c-secondary-ink);
+  max-width: 500px;
+}
+
+.ms-closing-ctas {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+/* Thin Footer Strip */
+.ms-footer-strip {
+  padding: 2.2rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.ms-footer-left {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+}
+
+.ms-footer-wordmark {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-primary-ink);
+}
+
+.ms-footer-tagline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--c-muted);
+}
+
+.ms-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  list-style: none;
+}
+
+.ms-footer-link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-secondary-ink);
+  transition: color 0.18s ease;
+}
+
+.ms-footer-link:hover {
+  color: var(--c-accent-blue);
+}
+
+/* Bottom Spread Wordmark */
+.ms-bottom-wordmark-wrap {
+  width: 100%;
+  overflow: hidden;
+  border-top: 1px solid var(--c-hairline);
+  position: relative;
+  background-color: var(--c-ground);
+}
+
+.ms-bottom-wordmark {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(3.4rem, 11.2vw, 9.8rem);
+  line-height: 0.8;
+  letter-spacing: -0.035em;
+  color: var(--c-primary-ink);
+  user-select: none;
+  pointer-events: none;
+  transform: translateY(22%); /* Crop baseline */
+  will-change: transform;
+}
+
+.ms-bottom-wordmark .char {
+  display: inline-block;
+  transition: transform 0.05s linear;
+  will-change: transform;
+}
+
+/* ── 13. ENTRY REVEAL TRANSITIONS ── */
+.reveal-entry {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-entry.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── 14. RESPONSIVE SAFEGUARDS ── */
+@media (max-width: 1024px) {
+  :root {
+    --container-pad: 1.8rem;
+  }
+
+  .ms-hero-layout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .ms-staging-box {
+    display: none;
+  }
+
+  .ms-argument-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .ms-argument-left {
+    position: static;
+  }
+
+  .ms-material-grid {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .ms-material-copy {
+    position: static;
+  }
+
+  .ms-capability-row {
+    grid-template-columns: 180px 1fr 140px;
+  }
+
+  .ms-closing-layout {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --container-pad: 1.25rem;
+  }
+
+  .ms-nav-center {
+    display: none;
+    position: absolute;
+    top: var(--nav-height);
+    left: 0;
+    right: 0;
+    background-color: var(--c-ground-secondary);
+    border-bottom: 1px solid var(--c-hairline);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+    gap: 1.2rem;
+  }
+
+  .ms-nav-center.is-open {
+    display: flex;
+  }
+
+  .ms-mobile-toggle {
+    display: inline-block;
+  }
+
+  .ms-argument-row {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .ms-row-value {
+    text-align: left;
+  }
+
+  .ms-capability-row {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .ms-cap-tag {
+    text-align: left;
+  }
+
+  .ms-preview-inspection-body {
+    grid-template-columns: 1fr;
+  }
+
+  .ms-demo-panel-footer {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .ms-footer-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  /* Safe handling of travelling pen on small screens */
+  .travelling-pen {
+    display: none !important;
+  }
+}
+
+/* ── 15. ACCESSIBILITY: REDUCED MOTION ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .travelling-pen {
+    display: none !important;
+  }
+
+  .reveal-entry {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .svg-main-path,
+  .svg-voice-segment,
+  .svg-text-line {
+    stroke-dashoffset: 0 !important;
+  }
+}
