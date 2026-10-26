@@ -182,7 +182,11 @@ const AIMeeting = (() => {
 
         segments.forEach(seg => {
             const speakerIdx = seg.speakerIndex;
-            const name = manualNames[speakerIdx] || seg.speaker;
+            // Respect the acoustically recognized speaker name first; fallback to manual index label only if generic
+            let name = seg.speaker;
+            if (!name || name.startsWith('SPEAKER_') || name.startsWith('Speaker ')) {
+                name = manualNames[speakerIdx] || speakerNames[speakerIdx] || seg.speaker;
+            }
             const color = SPEAKER_COLORS[speakerIdx % SPEAKER_COLORS.length];
             let text = seg.text.trim();
             if (!text) return;
@@ -194,9 +198,9 @@ const AIMeeting = (() => {
             // Determine confidence indicator
             const confidence = seg.confidence || 0;
             let confidenceMark = '';
-            if (enrolledProfileNames.length > 0 && confidence >= 0.70) {
+            if (enrolledProfileNames.length > 0 && confidence >= 0.20) {
                 confidenceMark = ' ✓';  // Recognized speaker
-            } else if (enrolledProfileNames.length > 0 && confidence > 0 && confidence < 0.70) {
+            } else if (enrolledProfileNames.length > 0 && confidence > 0 && confidence < 0.20) {
                 confidenceMark = ' ?';  // Uncertain match
             }
 
@@ -332,17 +336,51 @@ const AIMeeting = (() => {
     }
 
     // ── Fetch enrolled voice profiles ──
+    let cachedEnrolledProfiles = [];
     async function _fetchEnrolledProfiles() {
         try {
-            const res = await fetch(`${AI_API}/ai/voice/profiles`);
-            if (res.ok) {
-                const profiles = await res.json();
-                enrolledProfileNames = profiles.map(p => p.userName);
-                console.log(`[AI Meeting] ${enrolledProfileNames.length} enrolled voice profiles loaded`);
+            let list = [];
+            // Try saved-profiles first
+            try {
+                const r1 = await fetch(`${AI_API}/ai/voice/saved-profiles`);
+                if (r1.ok) {
+                    const d1 = await r1.json();
+                    if (d1.profiles && Array.isArray(d1.profiles)) {
+                        list = d1.profiles.map(p => ({
+                            name: p.speaker_id || p.speakerName || p.userName,
+                            duration: p.duration_sec || p.duration || 0,
+                            mode: p.extraction_mode || 'ecapa_tdnn'
+                        }));
+                    }
+                }
+            } catch (_) {}
+
+            // Fallback or augment with /ai/voice/profiles
+            if (!list.length) {
+                try {
+                    const r2 = await fetch(`${AI_API}/ai/voice/profiles`);
+                    if (r2.ok) {
+                        const d2 = await r2.json();
+                        if (Array.isArray(d2)) {
+                            list = d2.map(p => ({
+                                name: p.userName || p.speakerName || p.speaker_id,
+                                duration: p.duration || 0,
+                                mode: p.extractionMode || 'ecapa_tdnn'
+                            }));
+                        }
+                    }
+                } catch (_) {}
             }
+
+            cachedEnrolledProfiles = list;
+            enrolledProfileNames = list.map(p => p.name).filter(Boolean);
+            console.log(`[AI Meeting] ${enrolledProfileNames.length} enrolled voice profiles loaded:`, enrolledProfileNames);
+            return cachedEnrolledProfiles;
         } catch (e) {
             enrolledProfileNames = [];
-            console.debug('[AI Meeting] Could not fetch voice profiles (optional)');
+            cachedEnrolledProfiles = [];
+            console.debug('[AI Meeting] Could not fetch voice profiles:', e);
+            return [];
         }
     }
 
@@ -400,7 +438,25 @@ const AIMeeting = (() => {
         checkServer: checkAIServer,
         getSessionId: () => sessionId,
         getSpeakers: () => ({ ...speakerNames }),
-        getManualNames: () => ({ ...manualNames })
+        getManualNames: () => ({ ...manualNames }),
+        getEnrolledProfiles: _fetchEnrolledProfiles,
+        registerVoice: async (name, audioBlob) => {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, `quick_enroll_${name}.webm`);
+            formData.append('speakerName', name);
+            formData.append('userName', name);
+            formData.append('userId', name.toLowerCase().replace(/\s+/g, '_'));
+            const res = await fetch(`${AI_API}/ai/voice/register`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to register voice');
+            }
+            await _fetchEnrolledProfiles();
+            return await res.json();
+        }
     };
 })();
 

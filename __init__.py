@@ -1,55 +1,40 @@
 """
-Voice & Speaker Intelligence Package
+Overlapping-Speech Attribution Suite
 ====================================
-Feature #1: Overlapping-Speech Attribution
 Owner: Vedant (Member A)
+Feature: Overlapping-Speech Attribution
 
 Modules:
-  - whisper_transcriber: Task 1 - faster-whisper with word-level timestamps
-  - diarization_engine:  Task 2 - pyannote speaker diarization
-  - overlap_detector:    Task 3 - Temporal clash & collision detection
-  - voice_fingerprint:   Task 4 - SpeechBrain ECAPA-TDNN voice embeddings on mixed audio
-  - attribution_engine:  Task 5 - Overlapping attribution confidence (soft scoring)
-  - benchmark_eval:      Task 6 - Empirical metrics and patent claim evidence logger
+  - audio_utils: Sub-second WAV slicing and synthetic collision generators
+  - overlap_detector: Task 3 - Temporal clash and collision detection
+  - voice_fingerprint: Task 4 - SpeechBrain ECAPA-TDNN & acoustic fingerprinting
+  - attribution_engine: Task 5 - Probabilistic soft decomposition and scoring
+  - benchmark_eval: Task 6 - Empirical patent proof benchmark harness
+  - pipeline: Full end-to-end multi-modal meeting attribution orchestrator
 """
 
-__version__ = "1.0.0"
-__author__ = "Vedant"
-
-from voice_intelligence.whisper_transcriber import (  # type: ignore
-    FasterWhisperTranscriber,
-    WordToken,
-    TranscriptSegment,
-    TranscriptionResult,
-    get_transcriber,
+from voice_intelligence.overlap_suite.audio_utils import (
+    slice_wav_file,
+    read_wav_samples,
+    write_wav_samples,
+    generate_multi_speaker_overlapping_wav,
 )
 
-from voice_intelligence.diarization_engine import (  # type: ignore
-    PyannoteDiarizer,
-    SpeakerTurn,
-    DiarizationResult,
-    get_diarizer,
-)
-
-from voice_intelligence.overlap_detector import (  # type: ignore
+from voice_intelligence.overlap_suite.overlap_detector import (
     OverlapSegment,
     CollisionSummary,
     OverlapDetector,
     get_overlap_detector,
 )
 
-from voice_intelligence.voice_fingerprint import (  # type: ignore
-    DEFAULT_PROFILES_FILE,
+from voice_intelligence.overlap_suite.voice_fingerprint import (
     VoiceFingerprint,
     SpeakerProfileRegistry,
     VoiceFingerprintEngine,
     get_fingerprint_engine,
-    get_saved_registry,
-    register_speaker_voice,
-    recognize_speaker_voice,
 )
 
-from voice_intelligence.attribution_engine import (  # type: ignore
+from voice_intelligence.overlap_suite.attribution_engine import (
     WordAttribution,
     AttributedOverlapSegment,
     AttributionReport,
@@ -57,15 +42,48 @@ from voice_intelligence.attribution_engine import (  # type: ignore
     get_attribution_engine,
 )
 
-from voice_intelligence.benchmark_eval import (  # type: ignore
+from voice_intelligence.overlap_suite.benchmark_eval import (
     BenchmarkMetricSet,
     PatentBenchmarkHarness,
     get_benchmark_harness,
 )
 
-from voice_intelligence.overlap_suite import (  # type: ignore
+from voice_intelligence.overlap_suite.pipeline import (
     UnifiedTranscriptItem,
     PipelineExecutionResult,
     OverlappingAttributionPipeline,
     get_pipeline,
 )
+
+__all__ = [
+    # Audio Utils
+    "slice_wav_file",
+    "read_wav_samples",
+    "write_wav_samples",
+    "generate_multi_speaker_overlapping_wav",
+    # Task 3
+    "OverlapSegment",
+    "CollisionSummary",
+    "OverlapDetector",
+    "get_overlap_detector",
+    # Task 4
+    "VoiceFingerprint",
+    "SpeakerProfileRegistry",
+    "VoiceFingerprintEngine",
+    "get_fingerprint_engine",
+    # Task 5
+    "WordAttribution",
+    "AttributedOverlapSegment",
+    "AttributionReport",
+    "AttributionEngine",
+    "get_attribution_engine",
+    # Task 6
+    "BenchmarkMetricSet",
+    "PatentBenchmarkHarness",
+    "get_benchmark_harness",
+    # Pipeline
+    "UnifiedTranscriptItem",
+    "PipelineExecutionResult",
+    "OverlappingAttributionPipeline",
+    "get_pipeline",
+]

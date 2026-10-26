@@ -289,12 +289,20 @@ def transcribe_and_diarize(audio_path, session):
         try:
             from voice_intelligence.overlap_suite.voice_fingerprint import get_saved_registry
             saved_reg = get_saved_registry()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"⚠️ Could not load saved voice registry: {e}")
 
         if saved_reg is not None and len(saved_reg) > 0:
-            logger_msg = f"Matching against {len(saved_reg)} saved voice profiles ({saved_reg.all_speakers()})"
-            print(f"ℹ️  {logger_msg}")
+            # Determine active participants in this session
+            active_names = [
+                session.get_speaker_name(i) for i in range(session.next_speaker_index)
+            ]
+            enrolled_in_session = [n for n in active_names if saved_reg.has_speaker(n)]
+            if not enrolled_in_session:
+                enrolled_in_session = saved_reg.all_speakers()
+
+            print(f"ℹ️  Acoustic matching against enrolled speakers: {enrolled_in_session}")
+
             for seg in raw_segments:
                 seg_start = seg["start"]
                 seg_end = seg["end"]
@@ -302,11 +310,12 @@ def transcribe_and_diarize(audio_path, session):
                 if not seg_text:
                     continue
 
-                best_speaker, confidence, _ = saved_reg.recognize(
+                best_speaker, confidence, all_scores = saved_reg.recognize(
                     audio_input=audio_path,
                     start_sec=seg_start,
                     end_sec=seg_end,
-                    threshold=0.38
+                    threshold=0.20,
+                    candidate_speakers=enrolled_in_session
                 )
 
                 if best_speaker != "UNKNOWN":
@@ -315,8 +324,28 @@ def transcribe_and_diarize(audio_path, session):
                         session.auto_labels[speaker_idx] = best_speaker
                     speaker_name = session.get_speaker_name(speaker_idx)
                 else:
-                    speaker_idx = session.get_or_assign_speaker_index("SPEAKER_00")
-                    speaker_name = session.get_speaker_name(speaker_idx)
+                    # Select candidate with highest positive similarity score
+                    if all_scores:
+                        candidate_scores = {
+                            k: v for k, v in all_scores.items()
+                            if not enrolled_in_session or k in enrolled_in_session
+                        }
+                        if not candidate_scores:
+                            candidate_scores = all_scores
+                        top_cand, top_score = sorted(candidate_scores.items(), key=lambda x: x[1], reverse=True)[0]
+                        if top_score > 0.10:
+                            best_speaker = top_cand
+                            confidence = top_score
+                            speaker_idx = session.get_or_assign_speaker_index(best_speaker)
+                            speaker_name = session.get_speaker_name(speaker_idx)
+                        else:
+                            fallback_name = enrolled_in_session[0] if enrolled_in_session else "Speaker 1"
+                            speaker_idx = session.get_or_assign_speaker_index(fallback_name)
+                            speaker_name = session.get_speaker_name(speaker_idx)
+                    else:
+                        fallback_name = enrolled_in_session[0] if enrolled_in_session else "Speaker 1"
+                        speaker_idx = session.get_or_assign_speaker_index(fallback_name)
+                        speaker_name = session.get_speaker_name(speaker_idx)
 
                 results.append({
                     "speaker": speaker_name,
@@ -749,6 +778,33 @@ def list_saved_voice_profiles():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/ai/voice/profiles", methods=["GET"])
+def list_voice_profiles_array():
+    """List all registered voice profiles as array for dropdowns."""
+    try:
+        from voice_intelligence.overlap_suite.voice_fingerprint import get_saved_registry
+        reg = get_saved_registry()
+        profiles = []
+        for spk_id, fp in reg.all_profiles().items():
+            profiles.append({
+                "userId": spk_id.lower().replace(" ", "_"),
+                "userName": spk_id,
+                "speaker_id": spk_id,
+                "speakerName": spk_id,
+                "duration": round(fp.duration_sec, 2),
+                "extractionMode": fp.extraction_mode
+            })
+        return jsonify(profiles), 200
+    except Exception as e:
+        return jsonify([]), 200
+
+
+@app.route("/ai/voice/enroll", methods=["POST"])
+def enroll_voice_alias():
+    """Alias for voice registration ensuring compatibility with voice_profile.js."""
+    return register_voice_profile()
 
 
 @app.route("/ai/voice/recognize", methods=["POST"])
